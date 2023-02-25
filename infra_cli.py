@@ -26,7 +26,7 @@ def parse_args(args):
     create_parser.add_argument("--format", "-f", choices=["json", "yaml"], default="yaml", help="The format of the output file")
 
     # View stack command
-    view_parser = subparsers.add_parser("view")
+    view_parser = subparsers.add_parser("view", aliases=["show"])
     view_parser.add_argument("stack_name", help="The name of the CloudFormation stack to view")
     view_parser.add_argument("--events", "-e", action="store_true", help="Show stack events")
     view_parser.add_argument("--resources", "-r", action="store_true", help="Show stack resources")

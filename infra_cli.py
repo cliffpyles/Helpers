@@ -22,7 +22,7 @@ def get_parameters(args):
     return parameters
 
 
-def main():
+def parse_args():
     parser = argparse.ArgumentParser(description="CLI app for managing CloudFormation templates")
     subparsers = parser.add_subparsers(dest="command")
 
@@ -46,7 +46,11 @@ def main():
     view_parser.add_argument("--show-events", "-e", action="store_true", help="Show stack events")
     view_parser.add_argument("--show-resources", "-r", action="store_true", help="Show stack resources")
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
 
     if args.command == "deploy":
         parameters = get_parameters(args)

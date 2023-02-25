@@ -1,26 +1,81 @@
 #!/usr/bin/env python3
 
-from infra_commands.create_template import create_template
-from infra_commands.deploy_stack import deploy_stack
-from infra_commands.delete_stack import delete_stack
-from infra_commands.view_stack import view_stack
-from infra_commands.check_stack import check_stack
-from lib.parse_args import parse_args
+import argparse
+import sys
+import os
+from lib import helpers
+from infra_commands import deploy_stack, create_template, view_stack, check_stack, validate_template, lint_template
 
-if __name__ == "__main__":
-    args = parse_args()
+
+def parse_args(args):
+    parser = argparse.ArgumentParser(description="CLI tool for managing CloudFormation stacks")
+    subparsers = parser.add_subparsers(dest="command")
+
+    # Deploy stack command
+    deploy_parser = subparsers.add_parser("deploy")
+    deploy_parser.add_argument("stack_name", help="The name of the CloudFormation stack to create or update")
+    deploy_parser.add_argument("template_file", help="The path to the CloudFormation template file to use")
+    deploy_parser.add_argument("--parameters", nargs="+", help="A list of parameter values to use for the stack")
+    deploy_parser.add_argument("--parameters-file", help="The path to a file containing parameter values to use for the stack")
+    deploy_parser.add_argument("--capabilities", nargs="+", help="A list of capabilities required by the stack")
+
+    # Create template command
+    create_parser = subparsers.add_parser("create-template")
+    create_parser.add_argument("stack_name", help="The name of the CloudFormation stack to create a template for")
+    create_parser.add_argument("--output-file", "-o", help="The path to write the output file to")
+    create_parser.add_argument("--format", "-f", choices=["json", "yaml"], default="yaml", help="The format of the output file")
+
+    # View stack command
+    view_parser = subparsers.add_parser("view")
+    view_parser.add_argument("stack_name", help="The name of the CloudFormation stack to view")
+    view_parser.add_argument("--events", "-e", action="store_true", help="Show stack events")
+    view_parser.add_argument("--resources", "-r", action="store_true", help="Show stack resources")
+
+    # Check stack command
+    check_parser = subparsers.add_parser("check")
+    check_parser.add_argument("stack_name", help="The name of the CloudFormation stack to check")
+    check_parser.add_argument("template_file", help="The path to the CloudFormation template file to check")
+
+    # Validate stack command
+    validate_parser = subparsers.add_parser("validate")
+    validate_parser.add_argument("template_file", help="The path to the CloudFormation template file to validate")
+
+    # Lint template command
+    lint_parser = subparsers.add_parser("lint")
+    lint_parser.add_argument("template_file", help="The path to the CloudFormation template file to lint")
+
+    return parser.parse_args(args)
+
+
+def main():
+    args = parse_args(sys.argv[1:])
 
     if args.command == "deploy":
-        deploy_stack(args.stack_name, args.template_file, args.parameters, args.parameters_file)
+        if args.parameters_file:
+            with open(args.parameters_file, "r") as f:
+                parameters = helpers.get_parameters(f.read().split())
+        elif args.parameters:
+            parameters = helpers.get_parameters(args.parameters)
+        else:
+            parameters = {}
 
-    elif args.command == "delete":
-        delete_stack(args.stack_name)
+        deploy_stack.deploy_stack(args.stack_name, args.template_file, parameters, args.capabilities)
 
-    elif args.command == "create":
-        create_template(args.template_type, args.output_file)
+    elif args.command == "create-template":
+        output_file = args.output_file or f"{args.stack_name}.{args.format}"
+        create_template.create_template(args.stack_name, output_file, args.format)
 
     elif args.command == "view":
-        view_stack(args.stack_name, args.show_outputs, args.show_events, args.show_resources)
+        view_stack.view_stack(args.stack_name, args.events, args.resources)
 
     elif args.command == "check":
-        check_stack(args.stack_name, args.template_file)
+        check_stack.check_stack(args.stack_name, args.template_file)
+    
+    elif args.command == "validate":
+        validate_template.validate_template(args.template_file)
+
+    elif args.command == "lint":
+        lint_template.lint_template(args.template_file)
+
+if __name__ == "__main__":
+    main()

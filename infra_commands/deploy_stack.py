@@ -1,35 +1,28 @@
 import boto3
-from botocore.exceptions import ClientError
+import json
+import yaml
 
 
 def deploy_stack(stack_name, template_file, parameters):
     cf = boto3.client("cloudformation")
-
-    try:
-        with open(template_file, "r") as f:
-            template_body = f.read()
-
-        cf.create_stack(
-            StackName=stack_name,
-            TemplateBody=template_body,
-            Parameters=parameters,
-            Capabilities=["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM"]
-        )
-        print(f"Stack '{stack_name}' creation in progress...")
-    except ClientError as e:
-        if e.response["Error"]["Code"] == "AlreadyExistsException":
-            try:
-                with open(template_file, "r") as f:
-                    template_body = f.read()
-
-                cf.update_stack(
-                    StackName=stack_name,
-                    TemplateBody=template_body,
-                    Parameters=parameters,
-                    Capabilities=["CAPABILITY_IAM", "CAPABILITY_NAMED_IAM"]
-                )
-                print(f"Stack '{stack_name}' update in progress...")
-            except ClientError as e:
-                print(f"Error updating stack '{stack_name}': {e}")
+    with open(template_file, "r") as f:
+        if template_file.endswith(".json"):
+            template = json.load(f)
+        elif template_file.endswith(".yaml") or template_file.endswith(".yml"):
+            template = yaml.safe_load(f)
         else:
-            print(f"Error creating stack '{stack_name}': {e}")
+            raise ValueError("Unsupported template format")
+    try:
+        stack = cf.describe_stacks(StackName=stack_name)
+        print(f"Updating stack: {stack_name}")
+        cf.update_stack(StackName=stack_name, TemplateBody=json.dumps(template), Parameters=parameters)
+        waiter = cf.get_waiter("stack_update_complete")
+        waiter.wait(StackName=stack_name)
+    except cf.exceptions.ClientError as e:
+        if "does not exist" in str(e):
+            print(f"Creating stack: {stack_name}")
+            cf.create_stack(StackName=stack_name, TemplateBody=json.dumps(template), Parameters=parameters)
+            waiter = cf.get_waiter("stack_create_complete")
+            waiter.wait(StackName=stack_name)
+        else:
+            raise e

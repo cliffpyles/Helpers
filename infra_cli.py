@@ -4,7 +4,7 @@ import argparse
 import sys
 import os
 from lib import helpers
-from infra_commands import deploy_stack, create_template, view_stack, check_stack, validate_template, lint_template
+from infra_commands import deploy_stack, create_template, view_stack, check_stack, validate_template, lint_template, view_logs
 
 
 def parse_args(args):
@@ -44,6 +44,14 @@ def parse_args(args):
     lint_parser = subparsers.add_parser("lint")
     lint_parser.add_argument("template_file", help="The path to the CloudFormation template file to lint")
 
+    logs_parser = subparsers.add_parser("logs")
+    logs_parser.add_argument("function_name", help="The name of the Lambda function")
+    logs_parser.add_argument("--log-group", help="The name of the CloudWatch Logs log group")
+    logs_parser.add_argument("--start-time", help="The start time for the log query")
+    logs_parser.add_argument("--end-time", help="The end time for the log query")
+    logs_parser.add_argument("--filter-pattern", help="The filter pattern for the log query")
+    logs_parser.add_argument("--limit", help="The maximum number of log events to return")
+
     return parser.parse_args(args)
 
 
@@ -76,6 +84,9 @@ def main():
 
     elif args.command == "lint":
         lint_template.lint_template(args.template_file)
+
+    elif args.command == "logs":
+        view_logs.view_logs(args.function_name, args.log_group, args.start_time, args.end_time, args.filter_pattern, args.limit)
 
 if __name__ == "__main__":
     main()

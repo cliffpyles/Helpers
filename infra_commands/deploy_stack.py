@@ -1,6 +1,7 @@
 import boto3
 from botocore.exceptions import ClientError
 
+
 def deploy_stack(stack_name, template_file, parameters, capabilities=None):
     """
     Create or update a CloudFormation stack with the given name and template.

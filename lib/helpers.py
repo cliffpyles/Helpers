@@ -39,3 +39,7 @@ def get_parameters(parameters):
         parameters_dict[key] = value
 
     return parameters_dict
+
+def get_environment_parameters(env):
+    with open(f"{env}.json", "r") as f:
+        return json.load(f)

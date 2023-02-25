@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from infra_commands import deploy, delete_stack, create_template
+from infra_commands import deploy_stack, delete_stack, create_template
 
 def main():
     parser = argparse.ArgumentParser(description="CLI app for managing CloudFormation templates")
@@ -22,7 +22,7 @@ def main():
     args = parser.parse_args()
 
     if args.command == "deploy":
-        deploy.deploy(args.stack_name, args.template_file)
+        deploy_stack.deploy_stack(args.stack_name, args.template_file)
     elif args.command == "delete":
         delete_stack.delete_stack(args.stack_name)
     elif args.command == "create":

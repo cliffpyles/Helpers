@@ -17,7 +17,7 @@ def main(args=None):
     delete_parser.add_argument("input", help="Input for delete command")
 
     fetch_parser = subparsers.add_parser("fetch", help="Fetch data from an external source")
-    fetch_parser.add_argument("url", help="URL to fetch data from")
+    fetch_parser.add_argument("url", help="URL or S3 URI to fetch data from")
     fetch_parser.add_argument("-o", "--output", help="Output file path or S3 URI")
 
     args = parser.parse_args(args)

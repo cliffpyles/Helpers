@@ -41,7 +41,7 @@ def main():
     create_parser.add_argument("--template-type", choices=["json", "yaml"], default="yaml", help="Format of the CloudFormation template (default: yaml)")
 
     view_parser = subparsers.add_parser("view", help="View the status of a CloudFormation stack")
-    view_parser.add_argument("stack_name", type=str, help="Name of the stack to view the status of")
+    view_parser.add_argument("stack_name", type=str, help="Name of the stack to view")
     view_parser.add_argument("--show-outputs", "-o", action="store_true", help="Show stack outputs")
     view_parser.add_argument("--show-events", "-e", action="store_true", help="Show stack events")
     view_parser.add_argument("--show-resources", "-r", action="store_true", help="Show stack resources")

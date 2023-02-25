@@ -10,6 +10,7 @@ fi
 
 # create a symlink to the script in the user scripts directory
 ln -s "$PWD/data_cli.py" "$HOME_DIR/bin/data-cli"
+ln -s "$PWD/infra_cli.py" "$HOME_DIR/bin/infra-cli"
 
 # add the user scripts directory to the PATH
 if ! grep -q "$HOME_DIR/bin" "$HOME_DIR/.bashrc"; then
@@ -20,4 +21,6 @@ if [ -n "$ZSH_VERSION" ] && ! grep -q "$HOME_DIR/bin" "$HOME_DIR/.zshrc"; then
   echo 'export PATH="$HOME/bin:$PATH"' >> "$HOME_DIR/.zshrc"
 fi
 
-echo "Installation complete. Type 'data-cli' to use the app."
+echo "Installations complete."
+echo "Type 'data-cli' to use the data_cli app."
+echo "Type 'infra-cli' to use the infra_cli app."

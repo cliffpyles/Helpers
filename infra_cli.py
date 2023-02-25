@@ -4,6 +4,24 @@ import argparse
 import json
 from infra_commands import deploy_stack, delete_stack, create_template, view_stack
 
+
+def get_parameters(args):
+    parameters = None
+    if args.parameters:
+        parameters = []
+        for param in args.parameters:
+            key, value = param.split("=")
+            parameters.append({"ParameterKey": key, "ParameterValue": value})
+    if args.parameters_file:
+        with open(args.parameters_file, "r") as f:
+            file_params = json.load(f)
+            if parameters:
+                parameters.extend(file_params)
+            else:
+                parameters = file_params
+    return parameters
+
+
 def main():
     parser = argparse.ArgumentParser(description="CLI app for managing CloudFormation templates")
     subparsers = parser.add_subparsers(dest="command")
@@ -31,20 +49,7 @@ def main():
     args = parser.parse_args()
 
     if args.command == "deploy":
-        parameters = None
-        if args.parameters:
-            parameters = []
-            for param in args.parameters:
-                key, value = param.split("=")
-                parameters.append({"ParameterKey": key, "ParameterValue": value})
-        if args.parameters_file:
-            with open(args.parameters_file, "r") as f:
-                file_params = json.load(f)
-                if parameters:
-                    parameters.extend(file_params)
-                else:
-                    parameters = file_params
-
+        parameters = get_parameters(args)
         deploy_stack.deploy_stack(args.stack_name, args.template_file, parameters)
     elif args.command == "delete":
         delete_stack.delete_stack(args.stack_name)
@@ -52,6 +57,7 @@ def main():
         create_template.create_template(args.template_name, args.output_file, args.template_type)
     elif args.command == "view":
         view_stack.view_stack(args.stack_name, args.show_outputs, args.show_events, args.show_resources)
+
 
 if __name__ == "__main__":
     main()

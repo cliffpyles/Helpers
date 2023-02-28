@@ -4,7 +4,7 @@ import argparse
 import sys
 import os
 from lib import helpers
-from infra_commands import deploy_stack, create_template, view_stack, check_stack, validate_template, lint_template, view_logs
+from commands import deploy_stack, create_template, view_stack, check_stack, validate_template, lint_template, view_logs
 
 
 def parse_args(args):

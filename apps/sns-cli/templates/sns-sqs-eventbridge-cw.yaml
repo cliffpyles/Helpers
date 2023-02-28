@@ -1,0 +1,111 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Template to enrich Amazon EventBridge Pipes data using API destinations
+Parameters:
+  LogGroupName:
+    Type: String
+    Description: Log group name where the events are saved
+  StreamName:
+    Type: String
+    Description: Name of the stream were logs are saved
+  SNSTopicArn:
+    Type: String
+    Description: ARN of the SNS topic for the subscription
+Resources:
+  SourceQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt SourceQueueDLQ.Arn
+        maxReceiveCount: 5
+  SourceQueueDLQ:
+    Type: AWS::SQS::Queue
+  TargetCWLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+      LogGroupName: !Ref LogGroupName
+  EventBridgePipesRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - pipes.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: CloudWatchLogs
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !GetAtt TargetCWLogGroup.Arn
+        - PolicyName: ReadSQS
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'sqs:ReceiveMessage'
+                  - 'sqs:DeleteMessage'
+                  - 'sqs:GetQueueAttributes'
+                Resource: !GetAtt SourceQueue.Arn
+
+  SqsToApiDestination:
+    Type: AWS::Pipes::Pipe
+    Properties:
+      Name: !Ref StreamName
+      RoleArn: !GetAtt EventBridgePipesRole.Arn
+      Source: !GetAtt SourceQueue.Arn
+      SourceParameters:
+        SqsQueueParameters:
+          BatchSize: 1
+      Target: !GetAtt TargetCWLogGroup.Arn
+
+  SnsToSqsPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "Allow SNS publish to SQS"
+            Effect: Allow
+            Principal: 
+              Service: "sns.amazonaws.com"
+            Resource: !GetAtt SourceQueue.Arn
+            Action: SQS:SendMessage
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref SNSTopicArn
+      Queues:
+        - Ref: SourceQueue
+
+  SnsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref SNSTopicArn
+      Protocol: sqs
+      Endpoint: !GetAtt SourceQueue.Arn
+      RawMessageDelivery: true
+Outputs:
+  SourceQueueName:
+    Description: SQS queue name
+    Value: !GetAtt SourceQueue.QueueName
+  SourceQueueArn:
+    Description: SQS queue ARN
+    Value: !GetAtt SourceQueue.Arn
+  SourceQueueURL:
+    Description: SQS queue URL
+    Value: !Ref SourceQueue
+  TargetCWLogGroup:
+    Description: 'Target Log Group Name'
+    Value: !Ref TargetCWLogGroup
+  

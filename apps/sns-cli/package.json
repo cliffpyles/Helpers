@@ -1,0 +1,34 @@
+{
+  "name": "sns-cli",
+  "version": "1.0.0",
+  "description": "",
+  "main": "sns-cli.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Cliff Pyles <cliff@cliffpyles.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-cloudformation": "^3.279.0",
+    "@aws-sdk/client-cloudwatch": "^3.279.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.279.0",
+    "@aws-sdk/client-sns": "^3.279.0",
+    "@aws-sdk/client-sqs": "^3.279.0",
+    "@aws-sdk/client-sts": "^3.279.0",
+    "aws-sdk": "^2.1323.0",
+    "blessed": "^0.1.81",
+    "cli-table3": "^0.6.3",
+    "commander": "^10.0.0",
+    "conf": "^11.0.1",
+    "config": "^3.3.9",
+    "dotenv": "^16.0.3",
+    "import-jsx": "^4.0.1",
+    "ink": "^3.2.0",
+    "inquirer": "^9.1.4",
+    "install": "^0.13.0",
+    "meow": "^9.0.0",
+    "npm": "^9.5.1",
+    "react": "^17.0.2"
+  }
+}

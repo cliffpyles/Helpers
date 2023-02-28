@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from data_commands import create, update, delete, fetch
+from commands import create, update, delete, fetch
 
 def main(args=None):
     parser = argparse.ArgumentParser(description="A simple CLI for working with data")

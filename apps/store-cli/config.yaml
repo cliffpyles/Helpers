@@ -1,0 +1,3 @@
+current_store: default
+user_stores_dir: ~/.store-cli/stores
+data_filename: data.json

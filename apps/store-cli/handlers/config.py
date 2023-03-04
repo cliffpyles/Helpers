@@ -1,3 +1,5 @@
+# file: handlers/config.py
+
 from utils import save_config, restore_default_config
 
 

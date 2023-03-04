@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# file: store_cli.py
+
 import argparse
 from handlers.item import create_item, view_item, update_item, delete_item, list_items
 from handlers.store import create_store, view_store, update_store, delete_store, list_stores

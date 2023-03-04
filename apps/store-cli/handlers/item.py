@@ -1,5 +1,7 @@
+# file: handlers/item.py
+
 import os
-from utils import load_data, get_store_path, get_fields, create_item_object, save_data
+from utils import load_data, get_store_path, get_fields, create_item_object, update_item_object, save_data
 
 
 # Item Handlers

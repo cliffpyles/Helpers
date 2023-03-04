@@ -1,8 +1,49 @@
 # file: handlers/item.py
 
 import os
-from utils import load_data, get_store_path, get_fields, create_item_object, update_item_object, save_data
+from utils import load_data, get_store_path, get_fields, create_item_object, update_item_object, save_data, get_unique_keys
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
 
+
+# Item Views
+
+def view_details(item):
+    table = Table(title=f"Item: {item['_id']}")
+    fields = item.items()
+    table.add_column("Field")
+    table.add_column("Value")
+    
+    for key, value in fields:
+        table.add_row(key, value)
+    
+    
+    console = Console()
+    console.print(table)
+
+
+def view_collection(items):
+    table = Table(title="Items")
+    
+    # Add columns
+    columns = get_unique_keys(items)
+    for column in columns:
+        table.add_column(column)
+
+    # Add rows
+    for item in items:
+        values = []
+
+        for column in columns:
+            if column in item:
+                values.append(str(item.get(column, '')))
+        table.add_row(*values)
+
+    
+    # Print table
+    console = Console()
+    console.print(table)
 
 # Item Handlers
 
@@ -44,9 +85,8 @@ def view_item(args, config):
         print(f"Error: {item_id} does not exist in {store_name}")
         return
 
-    # Print item
-    print(f"Item: {item_id}")
-    print(item)
+    # View item
+    view_details(item)
 
 
 def update_item(args, config):
@@ -122,6 +162,7 @@ def list_items(args, config):
         return
 
     # Print items
-    print(f"Items in {store_name}:")
-    for datum in data:
-        print(datum)
+    # print(f"Items in {store_name}:")
+    # for datum in data:
+    #     print(datum)
+    view_collection(data)

@@ -6,6 +6,7 @@ import json
 import uuid
 from datetime import datetime
 from pathlib import Path
+from itertools import chain
 
 CONFIG_FILE = os.path.expanduser('~/.store-cli/config.yaml')
 DEFAULT_CONFIG = {
@@ -126,3 +127,8 @@ def replace_item_object(existing_fields, new_fields):
 
     return item
 
+def get_unique_keys(collection):
+    keys = set()
+    for record in collection:
+        keys.update(record.keys())
+    return keys

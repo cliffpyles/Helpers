@@ -79,7 +79,7 @@ def create_parser():
 
     # add `item view` subcommand
     view_item_parser = item_subparsers.add_parser('view', help='View an item in the store')
-    view_item_parser.add_argument('item', type=str, help='Name of the item to view')
+    view_item_parser.add_argument('id', type=str, help='Id of the item to view')
     view_item_parser.add_argument('--store', type=str, help='Name of the store that contains the item')
 
     # add `item update` subcommand

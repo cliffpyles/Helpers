@@ -338,7 +338,7 @@ def download(
 
 def main():
 
-    parser = argparse.ArgumentParser(description="Download and download a website.")
+    parser = argparse.ArgumentParser(description="Download a website.")
     parser.add_argument("url", help="The URL of the website to download.")
     parser.add_argument(
         "-a",

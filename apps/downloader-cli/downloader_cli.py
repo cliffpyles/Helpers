@@ -269,6 +269,12 @@ def main():
     parser = argparse.ArgumentParser(description="Scrape and download a website.")
     parser.add_argument("url", help="The URL of the website to scrape.")
     parser.add_argument(
+        "-f",
+        "--follow",
+        help="Follow URL redirects",
+        action=argparse.BooleanOptionalAction,
+    )
+    parser.add_argument(
         "-o",
         "--output",
         default="downloaded_files",

@@ -232,12 +232,7 @@ def crawl_links(url, output_dir, ignored_patterns, soup, previously_downloaded):
 
 
 def download(
-    url,
-    output_dir,
-    ignored_patterns,
-    previously_downloaded=[],
-    page_urls=[],
-    asset_urls=[],
+    url, output_dir, ignored_patterns, previously_downloaded=[], include_assets=False
 ):
     if url in previously_downloaded:
         return
@@ -256,9 +251,10 @@ def download(
             previously_downloaded.append(url)  # Track the URL has been downloaded
 
             # Download static assets
-            download_assets(
-                url, output_dir, ignored_patterns, soup, previously_downloaded
-            )
+            if include_assets:
+                download_assets(
+                    url, output_dir, ignored_patterns, soup, previously_downloaded
+                )
 
             # Download pages that were linked to
             crawl_links(url, output_dir, ignored_patterns, soup, previously_downloaded)
@@ -268,6 +264,12 @@ def main():
 
     parser = argparse.ArgumentParser(description="Download and download a website.")
     parser.add_argument("url", help="The URL of the website to download.")
+    parser.add_argument(
+        "-a",
+        "--assets",
+        help="Include assets in the download",
+        action=argparse.BooleanOptionalAction,
+    )
     parser.add_argument(
         "-f",
         "--follow",
@@ -292,11 +294,12 @@ def main():
     url = args.url
     output_dir = args.output
     ignored_patterns = args.ignore
+    include_assets = args.assets
     previously_downloaded = []
 
     os.makedirs(output_dir, exist_ok=True)
 
-    download(url, output_dir, ignored_patterns, previously_downloaded)
+    download(url, output_dir, ignored_patterns, previously_downloaded, include_assets)
 
     logger.info(
         f"Downloaded all content: {url} ({len(previously_downloaded)} downloads)"

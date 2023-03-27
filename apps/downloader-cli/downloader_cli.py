@@ -11,7 +11,9 @@ from urllib.parse import urlparse, urljoin, urlencode, parse_qs, urlunparse
 from playwright.sync_api import sync_playwright
 import argparse
 
-LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
+LOG_FORMAT = (
+    "%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s"
+)
 
 SOCIAL_MEDIA_PATTERNS = [
     "*adobe.com/*",

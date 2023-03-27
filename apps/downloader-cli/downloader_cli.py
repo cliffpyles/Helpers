@@ -209,7 +209,7 @@ def crawl_links(url, output_dir, ignored_patterns, soup, previously_downloaded):
                 try:
                     response = requests.get(full_url, timeout=10)
                     if response.status_code == 200:
-                        scrape(
+                        download(
                             full_url,
                             output_dir,
                             ignored_patterns,
@@ -221,7 +221,7 @@ def crawl_links(url, output_dir, ignored_patterns, soup, previously_downloaded):
                             redirected_url, ignored_patterns
                         ):
                             logger.info(f"Redirected to {redirected_url}")
-                            scrape(
+                            download(
                                 redirected_url,
                                 output_dir,
                                 ignored_patterns,
@@ -231,7 +231,7 @@ def crawl_links(url, output_dir, ignored_patterns, soup, previously_downloaded):
                     logger.error(f"Failed to download {full_url}: {e}")
 
 
-def scrape(
+def download(
     url,
     output_dir,
     ignored_patterns,
@@ -266,8 +266,8 @@ def scrape(
 
 def main():
 
-    parser = argparse.ArgumentParser(description="Scrape and download a website.")
-    parser.add_argument("url", help="The URL of the website to scrape.")
+    parser = argparse.ArgumentParser(description="Download and download a website.")
+    parser.add_argument("url", help="The URL of the website to download.")
     parser.add_argument(
         "-f",
         "--follow",
@@ -296,7 +296,7 @@ def main():
 
     os.makedirs(output_dir, exist_ok=True)
 
-    scrape(url, output_dir, ignored_patterns, previously_downloaded)
+    download(url, output_dir, ignored_patterns, previously_downloaded)
 
     logger.info(
         f"Downloaded all content: {url} ({len(previously_downloaded)} downloads)"

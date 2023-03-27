@@ -70,6 +70,10 @@ logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
 logger = logging.getLogger()
 
 
+def remove_url_anchor(url):
+    return url[: url.find("#")] if "#" in url else url
+
+
 def is_ignored_url(url, ignored_patterns):
     for pattern in ignored_patterns:
         if fnmatch.fnmatch(url, pattern):
@@ -97,7 +101,7 @@ def get_html_playwright(url):
             context = browser.new_context()
             page = context.new_page()
             page.goto(url)
-            time.sleep(3)  # Allow time for JavaScript to load
+            # time.sleep(3)  # Allow time for JavaScript to load
             html = page.content()
             browser.close()
         return html
@@ -123,14 +127,33 @@ def save_file(url, content, output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
         if file_path.endswith(".html") or file_path.endswith(".htm"):
-            logger.info(f"Saving page to {file_path}")
+            logger.debug(f"Saving page to {file_path}")
         else:
-            logger.info(f"Saving asset to {file_path}")
+            logger.debug(f"Saving asset to {file_path}")
         with open(file_path, "wb") as f:
             f.write(content)
     except NotADirectoryError as e:
         logger.critical("Error creating directory")
         logger.critical(e)
+        temp_file_path = f"{file_path}-temp"
+        os.rename(file_path, temp_file_path)
+        os.makedirs(output_dir, exist_ok=True)
+
+        if file_path.endswith(".html") or file_path.endswith(".htm"):
+            logger.debug(f"Saving page to {file_path}")
+        else:
+            logger.debug(f"Saving asset to {file_path}")
+        with open(file_path, "wb") as f:
+            f.write(content)
+
+        os.rename(temp_file_path, os.path.join(file_path, "index.html"))
+    except IsADirectoryError as e:
+        logger.debug("Error creating file")
+        logger.debug(e)
+        file_path = os.path.join(file_path, "index.html")
+        logger.debug(f"Saving page to {file_path}")
+        with open(file_path, "wb") as f:
+            f.write(content)
 
 
 def download_css_assets(
@@ -158,8 +181,11 @@ def download_asset(
     include_assets=False,
     follow_redirects=False,
 ):
+    url = remove_url_anchor(url)
+
     if url in previously_downloaded:
         return
+
     parsed_url = urlparse(url)
     url_no_query = urlunparse(parsed_url._replace(query=""))
 
@@ -391,4 +417,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass

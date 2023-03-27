@@ -11,9 +11,7 @@ from urllib.parse import urlparse, urljoin, urlencode, parse_qs, urlunparse
 from playwright.sync_api import sync_playwright
 import argparse
 
-LOG_FORMAT = (
-    "%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s"
-)
+LOG_FORMAT = "%(asctime)s.%(msecs)03d %(levelname)s %(funcName)s: %(message)s"
 
 SOCIAL_MEDIA_PATTERNS = [
     "*adobe.com/*",
@@ -103,9 +101,8 @@ def get_html_playwright(url):
             html = page.content()
             browser.close()
         return html
-    except ERR_ABORTED as e:
+    except:
         logger.critical("Error loading HTML")
-        logger.critical(e)
         return False
 
 
@@ -137,7 +134,13 @@ def save_file(url, content, output_dir):
 
 
 def download_css_assets(
-    css_content, base_url, output_dir, ignored_patterns, previously_downloaded
+    css_content,
+    base_url,
+    output_dir,
+    ignored_patterns,
+    previously_downloaded,
+    include_assets=False,
+    follow_redirects=False,
 ):
     asset_urls = CSS_URL_PATTERN.findall(css_content)
     for asset_url in asset_urls:
@@ -147,7 +150,14 @@ def download_css_assets(
         )
 
 
-def download_asset(url, output_dir, ignored_patterns, previously_downloaded):
+def download_asset(
+    url,
+    output_dir,
+    ignored_patterns,
+    previously_downloaded,
+    include_assets=False,
+    follow_redirects=False,
+):
     if url in previously_downloaded:
         return
     parsed_url = urlparse(url)
@@ -175,13 +185,24 @@ def download_asset(url, output_dir, ignored_patterns, previously_downloaded):
                     output_dir,
                     ignored_patterns,
                     previously_downloaded,
+                    include_assets,
+                    follow_redirects,
                 )
+
     except requests.exceptions.RequestException as e:
         logger.crtical(f"Failed to download asset {url}: {e}")
 
 
-def download_assets(url, output_dir, ignored_patterns, soup, previously_downloaded):
-    logger.info(f"Downloading assets on {url}")
+def download_assets(
+    url,
+    output_dir,
+    ignored_patterns,
+    soup,
+    previously_downloaded,
+    include_assets=False,
+    follow_redirects=False,
+):
+    logger.debug(f"Downloading assets on {url}")
 
     for tag_name, attr_name in [("img", "src"), ("link", "href"), ("script", "src")]:
         for tag in soup.find_all(tag_name):
@@ -189,12 +210,25 @@ def download_assets(url, output_dir, ignored_patterns, soup, previously_download
             if asset_url:
                 full_asset_url = urljoin(url, asset_url)
                 download_asset(
-                    full_asset_url, output_dir, ignored_patterns, previously_downloaded
+                    full_asset_url,
+                    output_dir,
+                    ignored_patterns,
+                    previously_downloaded,
+                    include_assets,
+                    follow_redirects,
                 )
 
 
-def crawl_links(url, output_dir, ignored_patterns, soup, previously_downloaded):
-    logger.info(f"Crawling links on {url}")
+def crawl_links(
+    url,
+    output_dir,
+    ignored_patterns,
+    soup,
+    previously_downloaded,
+    include_assets=False,
+    follow_redirects=False,
+):
+    logger.debug(f"Crawling links on {url}")
 
     for link in soup.find_all("a"):
         href = link.get("href")
@@ -205,41 +239,69 @@ def crawl_links(url, output_dir, ignored_patterns, soup, previously_downloaded):
                 and is_same_domain(url, full_url)
                 and not is_ignored_url(full_url, ignored_patterns)
             ):
-                logger.info(f"Found URL: {full_url}")
+                logger.debug(f"Found URL: {full_url}")
                 try:
-                    response = requests.get(full_url, timeout=10)
-                    if response.status_code == 200:
+                    if follow_redirects == True:
+                        response = requests.get(full_url, timeout=10)
+                        if response.status_code == 200:
+                            logger.debug(f"Downloading original: {full_url}")
+                            download(
+                                full_url,
+                                output_dir,
+                                ignored_patterns,
+                                previously_downloaded,
+                                include_assets,
+                                follow_redirects,
+                            )
+                        elif response.status_code in (301, 302):
+                            redirected_url = response.headers.get("Location")
+                            if redirected_url and not is_ignored_url(
+                                redirected_url, ignored_patterns
+                            ):
+                                logger.debug(f"Redirected to {redirected_url}")
+                                download(
+                                    redirected_url,
+                                    output_dir,
+                                    ignored_patterns,
+                                    previously_downloaded,
+                                    include_assets,
+                                    follow_redirects,
+                                )
+                    else:
+                        logger.debug(f"Downloading without redirects: {full_url}")
                         download(
                             full_url,
                             output_dir,
                             ignored_patterns,
                             previously_downloaded,
+                            include_assets,
+                            follow_redirects,
                         )
-                    elif response.status_code in (301, 302):
-                        redirected_url = response.headers.get("Location")
-                        if redirected_url and not is_ignored_url(
-                            redirected_url, ignored_patterns
-                        ):
-                            logger.info(f"Redirected to {redirected_url}")
-                            download(
-                                redirected_url,
-                                output_dir,
-                                ignored_patterns,
-                                previously_downloaded,
-                            )
                 except requests.exceptions.RequestException as e:
                     logger.error(f"Failed to download {full_url}: {e}")
 
 
 def download(
-    url, output_dir, ignored_patterns, previously_downloaded=[], include_assets=False
+    url,
+    output_dir,
+    ignored_patterns,
+    previously_downloaded=[],
+    include_assets=False,
+    follow_redirects=False,
 ):
     if url in previously_downloaded:
         return
-    logger.info(f"Scraping {url}")
+    logger.info(f"Downloading {url}")
 
     if is_file_download(url):
-        download_asset(url, output_dir, ignored_patterns, previously_downloaded)
+        download_asset(
+            url,
+            output_dir,
+            ignored_patterns,
+            previously_downloaded,
+            include_assets,
+            follow_redirects,
+        )
     else:
         html = get_html_playwright(url)
         if not html:
@@ -253,11 +315,25 @@ def download(
             # Download static assets
             if include_assets:
                 download_assets(
-                    url, output_dir, ignored_patterns, soup, previously_downloaded
+                    url,
+                    output_dir,
+                    ignored_patterns,
+                    soup,
+                    previously_downloaded,
+                    include_assets,
+                    follow_redirects,
                 )
 
             # Download pages that were linked to
-            crawl_links(url, output_dir, ignored_patterns, soup, previously_downloaded)
+            crawl_links(
+                url,
+                output_dir,
+                ignored_patterns,
+                soup,
+                previously_downloaded,
+                include_assets,
+                follow_redirects,
+            )
 
 
 def main():
@@ -295,11 +371,19 @@ def main():
     output_dir = args.output
     ignored_patterns = args.ignore
     include_assets = args.assets
+    follow_redirects = args.follow
     previously_downloaded = []
 
     os.makedirs(output_dir, exist_ok=True)
 
-    download(url, output_dir, ignored_patterns, previously_downloaded, include_assets)
+    download(
+        url,
+        output_dir,
+        ignored_patterns,
+        previously_downloaded,
+        include_assets,
+        follow_redirects,
+    )
 
     logger.info(
         f"Downloaded all content: {url} ({len(previously_downloaded)} downloads)"

@@ -6,6 +6,7 @@ import time
 import logging
 import requests
 import fnmatch
+import pathlib
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin, urlencode, parse_qs, urlunparse
 from playwright.sync_api import sync_playwright
@@ -123,6 +124,11 @@ def save_file(url, content, output_dir):
         url_path = parsed_url.path.lstrip("/").removesuffix(file_name)
         output_dir = os.path.join(output_dir, parsed_url.netloc, url_path)
         file_path = os.path.join(output_dir, file_name)
+        file_extension = pathlib.Path(file_path).suffix
+
+        if file_extension == "":
+            output_dir = file_path
+            file_path = os.path.join(file_path, "index.html")
 
         os.makedirs(output_dir, exist_ok=True)
 

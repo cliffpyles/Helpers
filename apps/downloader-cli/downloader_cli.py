@@ -95,7 +95,7 @@ def is_file_download(url):
     return False
 
 
-def get_html_playwright(url):
+def get_html(url):
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
@@ -108,6 +108,9 @@ def get_html_playwright(url):
         return html
     except:
         logger.critical("Error loading HTML")
+        page.close()
+        context.close()
+        browser.close()
         return False
 
 
@@ -179,6 +182,41 @@ def download_css_assets(
         )
 
 
+def download_document(
+    url,
+    output_dir,
+    ignored_patterns,
+    previously_downloaded,
+    include_assets=False,
+    follow_redirects=False,
+):
+    url = remove_url_anchor(url)
+    logger.info(f"URL: {url}")
+    if url in previously_downloaded:
+        return
+
+    parsed_url = urlparse(url)
+    url_no_query = urlunparse(parsed_url._replace(query=""))
+
+    if (
+        not url.startswith("http")
+        or is_ignored_url(url_no_query, ignored_patterns)
+        or url in previously_downloaded
+    ):
+        logger.warning(f"Canceling download for {url}")
+        return
+
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            save_file(url, response.content, output_dir)
+            logger.debug(f"Downloaded document {url}")
+            previously_downloaded.append(url)
+
+    except requests.exceptions.RequestException as e:
+        logger.crtical(f"Failed to download asset {url}: {e}")
+
+
 def download_asset(
     url,
     output_dir,
@@ -188,6 +226,8 @@ def download_asset(
     follow_redirects=False,
 ):
     url = remove_url_anchor(url)
+
+    logger.info(f"URL: {url}")
 
     if url in previously_downloaded:
         return
@@ -207,7 +247,7 @@ def download_asset(
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
             save_file(url, response.content, output_dir)
-            logger.info(f"Downloaded asset {url}")
+            logger.debug(f"Downloaded asset {url}")
             previously_downloaded.append(url)
 
             if url.lower().endswith(".css"):
@@ -249,6 +289,52 @@ def download_assets(
                     include_assets,
                     follow_redirects,
                 )
+
+
+def download_page(
+    url,
+    output_dir,
+    ignored_patterns,
+    previously_downloaded,
+    include_assets=False,
+    follow_redirects=False,
+):
+    url = remove_url_anchor(url)
+
+    logger.info(f"URL: {url}")
+
+    html = get_html(url)
+
+    if not html:
+        logger.warning(f"HTML could not be loaded for {url}")
+    else:
+        soup = BeautifulSoup(html, "html.parser")
+
+        save_file(url, html.encode(), output_dir)  # Save the original URL content
+        previously_downloaded.append(url)  # Track the URL has been downloaded
+
+        # Download static assets
+        if include_assets:
+            download_assets(
+                url,
+                output_dir,
+                ignored_patterns,
+                soup,
+                previously_downloaded,
+                include_assets,
+                follow_redirects,
+            )
+
+        # Download pages that were linked to
+        crawl_links(
+            url,
+            output_dir,
+            ignored_patterns,
+            soup,
+            previously_downloaded,
+            include_assets,
+            follow_redirects,
+        )
 
 
 def crawl_links(
@@ -323,10 +409,9 @@ def download(
 ):
     if url in previously_downloaded:
         return
-    logger.info(f"Downloading {url}")
 
     if is_file_download(url):
-        download_asset(
+        download_document(
             url,
             output_dir,
             ignored_patterns,
@@ -335,37 +420,14 @@ def download(
             follow_redirects,
         )
     else:
-        html = get_html_playwright(url)
-        if not html:
-            logger.warning(f"HTML could not be loaded for {url}")
-        else:
-            soup = BeautifulSoup(html, "html.parser")
-
-            save_file(url, html.encode(), output_dir)  # Save the original URL content
-            previously_downloaded.append(url)  # Track the URL has been downloaded
-
-            # Download static assets
-            if include_assets:
-                download_assets(
-                    url,
-                    output_dir,
-                    ignored_patterns,
-                    soup,
-                    previously_downloaded,
-                    include_assets,
-                    follow_redirects,
-                )
-
-            # Download pages that were linked to
-            crawl_links(
-                url,
-                output_dir,
-                ignored_patterns,
-                soup,
-                previously_downloaded,
-                include_assets,
-                follow_redirects,
-            )
+        download_page(
+            url,
+            output_dir,
+            ignored_patterns,
+            previously_downloaded,
+            include_assets,
+            follow_redirects,
+        )
 
 
 def main():
@@ -426,4 +488,5 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
+        logger.info("Stopping the download")
         pass

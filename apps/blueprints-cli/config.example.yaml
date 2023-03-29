@@ -1,0 +1,9 @@
+blueprints:
+  local_directory: .blueprints
+  global_directory: ~/.blueprints
+  default_variables: &default_variables
+    author: Your Name
+    email: your.email@example.com
+
+projects:
+  default_variables: *default_variables

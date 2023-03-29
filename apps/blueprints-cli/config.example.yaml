@@ -4,6 +4,7 @@ blueprints:
   default_variables: &default_variables
     author: Your Name
     email: your.email@example.com
+  remote_repository: https://example.com/blueprints/
 
 projects:
   default_variables: *default_variables

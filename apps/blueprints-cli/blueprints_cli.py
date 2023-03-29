@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import requests
+from urllib.parse import urljoin
 import os
 import sys
 import click
@@ -31,8 +33,17 @@ def get_template_path(template_name, local_path, global_path):
         return local_template_path
     elif global_template_path.exists():
         return global_template_path
-    else:
-        return None
+
+    if not template_path:
+        config = load_config()
+        remote_repository = config.get("blueprints", {}).get("remote_repository")
+        if remote_repository:
+            blueprint_content = download_remote_blueprint(
+                template_name, remote_repository
+            )
+            if blueprint_content:
+                return blueprint_content
+    return None
 
 
 def get_template_variables(variables_str):
@@ -67,13 +78,24 @@ def load_config():
     return {}
 
 
+def download_remote_blueprint(template_name, remote_repository):
+    url = urljoin(remote_repository, template_name)
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.text
+    except requests.exceptions.RequestException as e:
+        click.echo(f"Error downloading remote blueprint: {e}")
+        return None
+
+
 # CLI commands
 @click.group()
 def cli():
     pass
 
 
-@cli.command()
+@cli.command(help="Initialize a project for local blueprint support.")
 def init():
     blueprint_dir = Path(".blueprints")
     if not blueprint_dir.exists():
@@ -83,7 +105,7 @@ def init():
         click.echo("Blueprint directory already exists at .blueprints")
 
 
-@cli.command()
+@cli.command(help="Generate a file from a blueprint template.")
 @click.argument("template_name")
 @click.option("--variables", type=str, help="Template variables in YAML format.")
 @click.option("--output", type=str, help="Output file path.")
@@ -96,8 +118,12 @@ def generate(template_name, variables, output):
         click.echo(f"Template '{template_name}' not found.")
         sys.exit(1)
 
-    env = get_environment_with_custom_pipes(template_path.parent)
-    template = env.get_template(template_name)
+    if isinstance(template_path, str):
+        template = Template(template_path)
+    else:
+        env = get_environment_with_custom_pipes(template_path.parent)
+        template = env.get_template(template_name)
+
     variables = get_template_variables(variables)
     config = load_config()
     default_variables = config.get("blueprints", {}).get("default_variables", {})
@@ -112,7 +138,9 @@ def generate(template_name, variables, output):
         click.echo(rendered_content)
 
 
-@cli.command()
+@cli.command(
+    help="List available blueprints in the local and global blueprint directories."
+)
 @click.option("--local", is_flag=True, help="List local blueprints.")
 def list_blueprints(local):
     if local:
@@ -131,7 +159,7 @@ def list_blueprints(local):
         click.echo("No blueprints found.")
 
 
-@cli.command()
+@cli.command(help="Create a new blueprint in the local or global blueprint directory.")
 @click.argument("template_name")
 @click.option("--local", is_flag=True, help="Create local blueprint.")
 def create_blueprint(template_name, local):
@@ -152,7 +180,7 @@ def create_blueprint(template_name, local):
     click.echo(f"Created new blueprint at {blueprint_path}")
 
 
-@cli.command()
+@cli.command(help="Create a project from a blueprint template.")
 @click.argument("template_name")
 @click.option("--variables", type=str, help="Template variables in YAML format.")
 def create_project(template_name, variables):
@@ -166,7 +194,11 @@ def create_project(template_name, variables):
 
     env = get_environment_with_custom_pipes(template_path.parent)
     try:
-        template = env.get_template(template_name)
+        if isinstance(template_path, str):
+            template = Template(template_path)
+        else:
+            env = get_environment_with_custom_pipes(template_path.parent)
+            template = env.get_template(template_name)
     except TemplateNotFound:
         click.echo(f"Template '{template_name}' not found.")
         sys.exit(1)
@@ -191,7 +223,9 @@ def create_project(template_name, variables):
     click.echo(f"Created new project '{project_name}' using template '{template_name}'")
 
 
-@cli.command()
+@cli.command(
+    help="Copy an existing blueprint to a new blueprint in the local or global blueprint directory."
+)
 @click.argument("source_template_name")
 @click.argument("destination_template_name")
 @click.option("--local", is_flag=True, help="Copy to local blueprint directory.")
@@ -224,6 +258,35 @@ def copy_blueprint(source_template_name, destination_template_name, local):
     click.echo(
         f"Copied blueprint '{source_template_name}' to '{destination_template_name}'"
     )
+
+
+@cli.command(
+    help="Download a blueprint from a remote repository and save it to the local or global blueprint directory."
+)
+@click.argument("template_name")
+@click.option(
+    "--local", is_flag=True, help="Save the blueprint to the local blueprint directory."
+)
+def download_blueprint(template_name, local):
+    config = load_config()
+    remote_repository = config.get("blueprints", {}).get("remote_repository")
+    if not remote_repository:
+        click.echo("Remote repository not configured.")
+        sys.exit(1)
+
+    blueprint_content = download_remote_blueprint(template_name, remote_repository)
+    if blueprint_content is None:
+        click.echo(f"Blueprint '{template_name}' not found in remote repository.")
+        sys.exit(1)
+
+    destination_path = (
+        Path(".blueprints" if local else config["blueprints"]["global_directory"])
+        / template_name
+    )
+    with open(destination_path, "w") as f:
+        f.write(blueprint_content)
+
+    click.echo(f"Downloaded blueprint '{template_name}' to '{destination_path}'")
 
 
 if __name__ == "__main__":

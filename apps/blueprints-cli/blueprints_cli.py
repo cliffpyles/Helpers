@@ -17,7 +17,7 @@ def load_config_file(file_path):
         return yaml.safe_load(f)
 
 
-def get_template_path(template_name, local_path, global_path):
+def get_blueprint_path(template_name, local_path, global_path):
     config = load_config()
     local_path = Path(
         config.get("blueprints", {}).get("local_directory", ".blueprints")
@@ -26,15 +26,15 @@ def get_template_path(template_name, local_path, global_path):
         config.get("blueprints", {}).get("global_directory", "~/.blueprints")
     ).expanduser()
 
-    local_template_path = local_path / template_name
-    global_template_path = global_path / template_name
+    local_blueprint_path = local_path / template_name
+    global_blueprint_path = global_path / template_name
 
-    if local_template_path.exists() and local_template_path.is_dir():
-        return local_template_path
-    elif global_template_path.exists() and global_template_path.is_dir():
-        return global_template_path
+    if local_blueprint_path.exists() and local_blueprint_path.is_dir():
+        return local_blueprint_path
+    elif global_blueprint_path.exists() and global_blueprint_path.is_dir():
+        return global_blueprint_path
 
-    if not template_path:
+    if not blueprint_path:
         config = load_config()
         remote_repository = config.get("blueprints", {}).get("remote_repository")
         if remote_repository:
@@ -52,8 +52,8 @@ def get_template_variables(variables_str):
     return {}
 
 
-def get_environment_with_custom_pipes(template_path):
-    env = Environment(loader=FileSystemLoader(str(template_path.parent)))
+def get_environment_with_custom_pipes(blueprint_path):
+    env = Environment(loader=FileSystemLoader(str(blueprint_path.parent)))
     env.filters["capitalize"] = capitalize
     env.filters["upper"] = upper
     env.filters["lower"] = lower
@@ -110,15 +110,15 @@ def process_blueprint_directory(blueprint_dir, target_dir, variables, env):
             click.echo(f"Generated: {target_path}")
 
 
-def generate_files_from_blueprint(template_path, variables, output):
-    if isinstance(template_path, str):
+def generate_files_from_blueprint(blueprint_path, variables, output):
+    if isinstance(blueprint_path, str):
         env = get_environment_with_custom_pipes(Path.cwd())
-        template = env.from_string(template_path)
+        template = env.from_string(blueprint_path)
     else:
-        env = get_environment_with_custom_pipes(template_path)
+        env = get_environment_with_custom_pipes(blueprint_path)
         template = env.get_template("")
 
-    process_blueprint_directory(template_path, Path(output), variables, env)
+    process_blueprint_directory(blueprint_path, Path(output), variables, env)
 
 
 # CLI commands
@@ -144,12 +144,12 @@ def init():
 def generate(template_name, variables, output):
     local_path = Path(".blueprints")
     global_path = Path.home() / ".blueprints"
-    template_path = get_template_path(template_name, local_path, global_path)
-    if not template_path:
+    blueprint_path = get_blueprint_path(template_name, local_path, global_path)
+    if not blueprint_path:
         click.echo(f"Blueprint '{template_name}' not found.")
         sys.exit(1)
 
-    generate_files_from_blueprint(template_path, variables, output)
+    generate_files_from_blueprint(blueprint_path, variables, output)
 
 
 @cli.command(
@@ -202,25 +202,25 @@ def create_blueprint(template_name, local):
 def copy_blueprint(source_template_name, destination_template_name, local):
     local_path = Path(".blueprints")
     global_path = Path.home() / ".blueprints"
-    source_template_path = get_template_path(
+    source_blueprint_path = get_blueprint_path(
         source_template_name, local_path, global_path
     )
 
-    if not source_template_path:
+    if not source_blueprint_path:
         click.echo(f"Source template '{source_template_name}' not found.")
         sys.exit(1)
 
-    destination_template_path = local_path if local else global_path
-    destination_template_path /= destination_template_name
+    destination_blueprint_path = local_path if local else global_path
+    destination_blueprint_path /= destination_template_name
 
-    if destination_template_path.exists():
+    if destination_blueprint_path.exists():
         click.echo(
             f"Destination template '{destination_template_name}' already exists."
         )
         sys.exit(1)
 
     try:
-        shutil.copy2(source_template_path, destination_template_path)
+        shutil.copy2(source_blueprint_path, destination_blueprint_path)
     except OSError as e:
         click.echo(f"Error copying blueprint: {e}")
         sys.exit(1)

@@ -29,9 +29,9 @@ def get_template_path(template_name, local_path, global_path):
     local_template_path = local_path / template_name
     global_template_path = global_path / template_name
 
-    if local_template_path.exists():
+    if local_template_path.exists() and local_template_path.is_dir():
         return local_template_path
-    elif global_template_path.exists():
+    elif global_template_path.exists() and global_template_path.is_dir():
         return global_template_path
 
     if not template_path:
@@ -89,6 +89,38 @@ def download_remote_blueprint(template_name, remote_repository):
         return None
 
 
+def process_blueprint_directory(blueprint_dir, target_dir, variables, env):
+    for root, _, files in os.walk(blueprint_dir):
+        for file in files:
+            source_path = Path(root) / file
+            relative_path = source_path.relative_to(blueprint_dir)
+
+            # Check if the file has dynamic content in the name and render it
+            if "{{" in file and "}}" in file:
+                file = Template(file).render(variables)
+
+            target_path = target_dir / relative_path.parent / file
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(source_path, "r") as source_file:
+                content = source_file.read()
+                rendered_content = env.from_string(content).render(variables)
+                with open(target_path, "w") as target_file:
+                    target_file.write(rendered_content)
+            click.echo(f"Generated: {target_path}")
+
+
+def generate_files_from_blueprint(template_path, variables, output):
+    if isinstance(template_path, str):
+        env = get_environment_with_custom_pipes(Path.cwd())
+        template = env.from_string(template_path)
+    else:
+        env = get_environment_with_custom_pipes(template_path)
+        template = env.get_template("")
+
+    process_blueprint_directory(template_path, Path(output), variables, env)
+
+
 # CLI commands
 @click.group()
 def cli():
@@ -113,29 +145,11 @@ def generate(template_name, variables, output):
     local_path = Path(".blueprints")
     global_path = Path.home() / ".blueprints"
     template_path = get_template_path(template_name, local_path, global_path)
-
     if not template_path:
-        click.echo(f"Template '{template_name}' not found.")
+        click.echo(f"Blueprint '{template_name}' not found.")
         sys.exit(1)
 
-    if isinstance(template_path, str):
-        template = Template(template_path)
-    else:
-        env = get_environment_with_custom_pipes(template_path.parent)
-        template = env.get_template(template_name)
-
-    variables = get_template_variables(variables)
-    config = load_config()
-    default_variables = config.get("blueprints", {}).get("default_variables", {})
-    variables = {**default_variables, **variables}
-    rendered_content = template.render(**variables)
-
-    if output:
-        with open(output, "w") as f:
-            f.write(rendered_content)
-        click.echo(f"Generated file '{output}' using template '{template_name}'")
-    else:
-        click.echo(rendered_content)
+    generate_files_from_blueprint(template_path, variables, output)
 
 
 @cli.command(
@@ -175,9 +189,8 @@ def create_blueprint(template_name, local):
         click.echo(f"Blueprint '{template_name}' already exists.")
         sys.exit(1)
 
-    with open(blueprint_path, "w") as f:
-        f.write("{{ variable_name|pipe_name }}")
-    click.echo(f"Created new blueprint at {blueprint_path}")
+    blueprint_path.mkdir()  # Create the blueprint directory
+    click.echo(f"Created new blueprint directory at {blueprint_path}")
 
 
 @cli.command(help="Create a project from a blueprint template.")
@@ -187,40 +200,12 @@ def create_project(template_name, variables):
     local_path = Path(".blueprints")
     global_path = Path.home() / ".blueprints"
     template_path = get_template_path(template_name, local_path, global_path)
-
     if not template_path:
-        click.echo(f"Template '{template_name}' not found.")
+        click.echo(f"Blueprint '{template_name}' not found.")
         sys.exit(1)
 
-    env = get_environment_with_custom_pipes(template_path.parent)
-    try:
-        if isinstance(template_path, str):
-            template = Template(template_path)
-        else:
-            env = get_environment_with_custom_pipes(template_path.parent)
-            template = env.get_template(template_name)
-    except TemplateNotFound:
-        click.echo(f"Template '{template_name}' not found.")
-        sys.exit(1)
-
-    variables = get_template_variables(variables)
-    config = load_config()
-    default_variables = config.get("projects", {}).get("default_variables", {})
-    variables = {**default_variables, **variables}
-    rendered_content = template.render(**variables)
-
-    project_name = variables.get("project_name", "new_project")
-    project_path = Path(project_name)
-
-    try:
-        project_path.mkdir(parents=True, exist_ok=True)
-    except OSError as e:
-        click.echo(f"Error creating project directory: {e}")
-        sys.exit(1)
-
-    with open(project_path / "README.md", "w") as f:
-        f.write(rendered_content)
-    click.echo(f"Created new project '{project_name}' using template '{template_name}'")
+    project_dir = Path.cwd() / template_name
+    generate_files_from_blueprint(template_path, variables, project_dir)
 
 
 @cli.command(

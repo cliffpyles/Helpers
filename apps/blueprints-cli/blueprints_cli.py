@@ -178,9 +178,9 @@ def list_blueprints(local):
 @click.option("--local", is_flag=True, help="Create local blueprint.")
 def create_blueprint(template_name, local):
     if local:
-        blueprint_path = Path(".blueprints") / template_name
+        blueprint_path = Path(".blueprints") / template_name / "files" / f"{template_name}.j2"
     else:
-        blueprint_path = Path.home() / ".blueprints" / template_name
+        blueprint_path = Path.home() / ".blueprints" / template_name / "files" / f"{template_name}.j2"
 
     if not blueprint_path.parent.exists():
         blueprint_path.parent.mkdir(parents=True)
@@ -189,8 +189,8 @@ def create_blueprint(template_name, local):
         click.echo(f"Blueprint '{template_name}' already exists.")
         sys.exit(1)
 
-    blueprint_path.mkdir()  # Create the blueprint directory
-    click.echo(f"Created new blueprint directory at {blueprint_path}")
+    blueprint_path.write_text(f"{template_name} placeholder file")
+    click.echo(f"Created new blueprint at {blueprint_path.parent}")
 
 
 @cli.command(help="Create a project from a blueprint template.")

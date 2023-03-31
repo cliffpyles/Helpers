@@ -166,7 +166,7 @@ def list_blueprints(local):
 
     if blueprint_path.exists():
         blueprints = [
-            entry.name for entry in blueprint_path.iterdir() if entry.is_file()
+            entry.name for entry in blueprint_path.iterdir() if entry.is_dir()
         ]
         click.echo("\n".join(blueprints))
     else:

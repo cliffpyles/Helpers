@@ -193,21 +193,6 @@ def create_blueprint(template_name, local):
     click.echo(f"Created new blueprint at {blueprint_path.parent}")
 
 
-@cli.command(help="Create a project from a blueprint template.")
-@click.argument("template_name")
-@click.option("--variables", type=str, help="Template variables in YAML format.")
-def create_project(template_name, variables):
-    local_path = Path(".blueprints")
-    global_path = Path.home() / ".blueprints"
-    template_path = get_template_path(template_name, local_path, global_path)
-    if not template_path:
-        click.echo(f"Blueprint '{template_name}' not found.")
-        sys.exit(1)
-
-    project_dir = Path.cwd() / template_name
-    generate_files_from_blueprint(template_path, variables, project_dir)
-
-
 @cli.command(
     help="Copy an existing blueprint to a new blueprint in the local or global blueprint directory."
 )

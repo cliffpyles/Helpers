@@ -10,7 +10,7 @@ import yaml
 from pathlib import Path
 import shutil
 from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound
-from pipes import capitalize, upper, lower, kebab_case, snake_case, camel_case
+from pipes import capitalize, upper, lower, kebab_case, snake_case, camel_case, pascal_case
 
 # Helper functions
 def load_config_file(file_path):
@@ -66,6 +66,7 @@ def get_environment_with_custom_pipes(blueprint_path):
     env.filters["kebab_case"] = kebab_case
     env.filters["snake_case"] = snake_case
     env.filters["camel_case"] = camel_case
+    env.filters["pascal_case"] = pascal_case
 
     return env
 

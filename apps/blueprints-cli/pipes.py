@@ -21,3 +21,7 @@ def snake_case(value):
 def camel_case(value):
     words = value.split(" ")
     return words[0].lower() + "".join(word.capitalize() for word in words[1:])
+
+def pascal_case(value):
+    words = value.split(" ")
+    return "".join(word.capitalize() for word in words)

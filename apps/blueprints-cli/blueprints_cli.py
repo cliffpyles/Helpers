@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import glob
 import requests
 from urllib.parse import urljoin
 import os
@@ -46,22 +47,23 @@ def get_blueprint_path(template_name, local_path, global_path):
     return None
 
 
-def get_template_variables(variables_str):
+def get_blueprint_variables(variables_str):
     if variables_str:
         return yaml.safe_load(variables_str)
+
     return {}
 
 
 def get_environment_with_custom_pipes(blueprint_path):
-    env = Environment(loader=FileSystemLoader(str(blueprint_path.parent)))
+    env = Environment(loader=FileSystemLoader(str(blueprint_path)))
     env.filters["capitalize"] = capitalize
     env.filters["upper"] = upper
     env.filters["lower"] = lower
     env.filters["kebab_case"] = kebab_case
     env.filters["snake_case"] = snake_case
     env.filters["camel_case"] = camel_case
-    return env
 
+    return env
 
 def copy_directory(src, dst):
     try:
@@ -89,36 +91,33 @@ def download_remote_blueprint(template_name, remote_repository):
         return None
 
 
-def process_blueprint_directory(blueprint_dir, target_dir, variables, env):
-    for root, _, files in os.walk(blueprint_dir):
-        for file in files:
-            source_path = Path(root) / file
-            relative_path = source_path.relative_to(blueprint_dir)
+def process_blueprint_templates(templates, target_dir, env, variables):
+    if not variables:
+        variables = {}
 
-            # Check if the file has dynamic content in the name and render it
-            if "{{" in file and "}}" in file:
-                file = Template(file).render(variables)
+    for template in templates:
+        
+        target_name_template = Template(template.name)
+        target_name = target_name_template.render(variables)
+        target_path = target_dir / target_name.strip(".j2")
+        target_path.parent.mkdir(parents=True, exist_ok=True)
 
-            target_path = target_dir / relative_path.parent / file
-            target_path.parent.mkdir(parents=True, exist_ok=True)
+        rendered_content = template.render(variables)
 
-            with open(source_path, "r") as source_file:
-                content = source_file.read()
-                rendered_content = env.from_string(content).render(variables)
-                with open(target_path, "w") as target_file:
-                    target_file.write(rendered_content)
-            click.echo(f"Generated: {target_path}")
+        with open(target_path, "w") as target_file:
+            target_file.write(rendered_content)
+
+        click.echo(f"Generated: {target_path}")
 
 
 def generate_files_from_blueprint(blueprint_path, variables, output):
-    if isinstance(blueprint_path, str):
-        env = get_environment_with_custom_pipes(Path.cwd())
-        template = env.from_string(blueprint_path)
-    else:
-        env = get_environment_with_custom_pipes(blueprint_path)
-        template = env.get_template("")
+    blueprint_templates_dir = blueprint_path / "files"
+    template_files = glob.glob("**/*.j2", root_dir=blueprint_templates_dir, recursive=True)
+    env = get_environment_with_custom_pipes(blueprint_templates_dir)
+    templates = [env.get_template(t) for t in template_files]
 
-    process_blueprint_directory(blueprint_path, Path(output), variables, env)
+    process_blueprint_templates(templates, Path(output), env, variables)
+    
 
 
 # CLI commands
@@ -145,11 +144,13 @@ def generate(template_name, variables, output):
     local_path = Path(".blueprints")
     global_path = Path.home() / ".blueprints"
     blueprint_path = get_blueprint_path(template_name, local_path, global_path)
+    blueprint_variables = get_blueprint_variables(variables)
+    
     if not blueprint_path:
         click.echo(f"Blueprint '{template_name}' not found.")
         sys.exit(1)
 
-    generate_files_from_blueprint(blueprint_path, variables, output)
+    generate_files_from_blueprint(blueprint_path, blueprint_variables, output)
 
 
 @cli.command(

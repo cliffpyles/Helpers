@@ -70,6 +70,7 @@ def get_environment_with_custom_pipes(blueprint_path):
 
     return env
 
+
 def copy_directory(src, dst):
     try:
         shutil.copytree(src, dst)
@@ -126,6 +127,17 @@ def generate_files_from_blueprint(blueprint_path, blueprint_instance_name, varia
     process_blueprint_templates(templates, Path(output), env, blueprint_variables)
     
 
+def generate_command(blueprint_name, blueprint_instance_name, variables, output):
+    local_path = Path(".blueprints")
+    global_path = Path.home() / ".blueprints"
+    blueprint_path = get_blueprint_path(blueprint_name, local_path, global_path)
+
+    if not blueprint_path:
+        click.echo(f"Blueprint '{blueprint_name}' not found.")
+        sys.exit(1)
+
+    generate_files_from_blueprint(blueprint_path, blueprint_instance_name, variables, output)
+
 
 # CLI commands
 @click.group()
@@ -143,21 +155,21 @@ def init():
         click.echo("Blueprint directory already exists at .blueprints")
 
 
-@cli.command(help="Generate files from a blueprint.")
+@cli.command(name="generate", help="Generate files from a blueprint.")
 @click.argument("blueprint_name")
 @click.argument("blueprint_instance_name")
 @click.option("--variables", type=str, help="Template variables in YAML format.")
 @click.option("--output", type=str, help="Output file path.")
 def generate(blueprint_name, blueprint_instance_name, variables, output):
-    local_path = Path(".blueprints")
-    global_path = Path.home() / ".blueprints"
-    blueprint_path = get_blueprint_path(blueprint_name, local_path, global_path)
+    generate_command(blueprint_name, blueprint_instance_name, variables, output)
 
-    if not blueprint_path:
-        click.echo(f"Blueprint '{blueprint_name}' not found.")
-        sys.exit(1)
-
-    generate_files_from_blueprint(blueprint_path, blueprint_instance_name, variables, output)
+@cli.command(name="g", help="Generate files from a blueprint.", hidden=True)
+@click.argument("blueprint_name")
+@click.argument("blueprint_instance_name")
+@click.option("--variables", type=str, help="Template variables in YAML format.")
+@click.option("--output", type=str, help="Output file path.")
+def generate_alias(blueprint_name, blueprint_instance_name, variables, output):
+    generate_command(blueprint_name, blueprint_instance_name, variables, output)
 
 
 @cli.command(

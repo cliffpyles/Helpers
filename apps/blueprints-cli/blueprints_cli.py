@@ -79,6 +79,12 @@ def copy_directory(src, dst):
         sys.exit(1)
 
 
+def copy_permissions(src_path, dest_path):
+    """Copy permissions of src_path to dest_path"""
+    mode = os.stat(src_path).st_mode
+    os.chmod(dest_path, mode)
+
+
 def load_config():
     config_path = Path.home() / ".blueprints" / "config.yaml"
     if config_path.exists():
@@ -110,6 +116,8 @@ def process_blueprint_templates(templates, target_dir, env, variables):
 
         with open(target_path, "w") as target_file:
             target_file.write(rendered_content)
+
+        copy_permissions(template.filename, target_path)
 
         click.echo(f"Generated: {target_path}")
 

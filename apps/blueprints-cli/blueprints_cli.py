@@ -139,6 +139,24 @@ def generate_command(blueprint_name, blueprint_instance_name, variables, output)
     generate_files_from_blueprint(blueprint_path, blueprint_instance_name, variables, output)
 
 
+def list_blueprints_command(local):
+    if local:
+        blueprint_path = Path(".blueprints")
+        click.echo("Local blueprints:")
+    else:
+        blueprint_path = Path.home() / ".blueprints"
+        click.echo("Global blueprints:")
+
+    if blueprint_path.exists():
+        blueprints = [
+            entry.name for entry in blueprint_path.iterdir() if entry.is_dir()
+        ]
+        click.echo("\n".join(blueprints))
+    else:
+        click.echo("No blueprints found.")
+
+
+
 # CLI commands
 @click.group()
 def cli():
@@ -163,6 +181,7 @@ def init():
 def generate(blueprint_name, blueprint_instance_name, variables, output):
     generate_command(blueprint_name, blueprint_instance_name, variables, output)
 
+
 @cli.command(name="g", help="Generate files from a blueprint.", hidden=True)
 @click.argument("blueprint_name")
 @click.argument("blueprint_instance_name")
@@ -173,24 +192,22 @@ def generate_alias(blueprint_name, blueprint_instance_name, variables, output):
 
 
 @cli.command(
+    name="list",
     help="List available blueprints in the local and global blueprint directories."
 )
 @click.option("--local", is_flag=True, help="List local blueprints.")
 def list_blueprints(local):
-    if local:
-        blueprint_path = Path(".blueprints")
-        click.echo("Local blueprints:")
-    else:
-        blueprint_path = Path.home() / ".blueprints"
-        click.echo("Global blueprints:")
+    list_blueprints_command(local)
 
-    if blueprint_path.exists():
-        blueprints = [
-            entry.name for entry in blueprint_path.iterdir() if entry.is_dir()
-        ]
-        click.echo("\n".join(blueprints))
-    else:
-        click.echo("No blueprints found.")
+
+@cli.command(
+    name="ls",
+    help="List available blueprints in the local and global blueprint directories.",
+    hidden=True
+)
+@click.option("--local", is_flag=True, help="List local blueprints.")
+def list_blueprints_alias(local):
+    list_blueprints_command(local)
 
 
 @cli.command(help="Create a new blueprint in the local or global blueprint directory.")

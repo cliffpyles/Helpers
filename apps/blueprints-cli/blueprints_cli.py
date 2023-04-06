@@ -239,9 +239,9 @@ def copy_blueprint_command(source_blueprint_name, destination_blueprint_name, gl
         sys.exit(1)
 
     if(global_src):
-        source_message = f"from the global '{source_blueprint_name}' blueprint"
+        source_message = f"using the global '{source_blueprint_name}' blueprint"
     else:
-        source_message = f"from the local '{source_blueprint_name}' blueprint"
+        source_message = f"using the local '{source_blueprint_name}' blueprint"
     
     if(global_dest):
         destination_message = f"'{destination_blueprint_name}' as a global blueprint"

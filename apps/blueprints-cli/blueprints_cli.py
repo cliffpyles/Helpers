@@ -147,13 +147,13 @@ def generate_command(blueprint_name, blueprint_instance_name, variables, output)
     generate_files_from_blueprint(blueprint_path, blueprint_instance_name, variables, output)
 
 
-def list_blueprints_command(local):
-    if local:
-        blueprint_path = Path(".blueprints")
-        click.echo("Local blueprints:")
-    else:
+def list_blueprints_command(_global):
+    if _global:
         blueprint_path = Path.home() / ".blueprints"
         click.echo("Global blueprints:")
+    else:
+        blueprint_path = Path(".blueprints")
+        click.echo("Local blueprints:")
 
     if blueprint_path.exists():
         blueprints = [
@@ -171,7 +171,7 @@ def cli():
     pass
 
 
-@cli.command(help="Initialize a project for local blueprint support.")
+@cli.command(help="Initialize a project for blueprint support.")
 def init():
     blueprint_dir = Path(".blueprints")
     if not blueprint_dir.exists():
@@ -201,21 +201,21 @@ def generate_alias(blueprint_name, blueprint_instance_name, variables, output):
 
 @cli.command(
     name="list",
-    help="List available blueprints in the local and global blueprint directories."
+    help="List available blueprints."
 )
-@click.option("--local", is_flag=True, help="List local blueprints.")
-def list_blueprints(local):
-    list_blueprints_command(local)
+@click.option("-g", "--global", is_flag=True, help="List global blueprints.")
+def list_blueprints(**kwargs):
+    list_blueprints_command(kwargs["global"])
 
 
 @cli.command(
     name="ls",
-    help="List available blueprints in the local and global blueprint directories.",
+    help="List available blueprints.",
     hidden=True
 )
-@click.option("--local", is_flag=True, help="List local blueprints.")
-def list_blueprints_alias(local):
-    list_blueprints_command(local)
+@click.option("-g", "--global", is_flag=True, help="List global blueprints.")
+def list_blueprints_alias(**kwargs):
+    list_blueprints_command(kwargs["global"])
 
 
 @cli.command(help="Create a new blueprint in the local or global blueprint directory.")

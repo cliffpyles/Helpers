@@ -18,6 +18,26 @@ def load_config_file(file_path):
         return yaml.safe_load(f)
 
 
+def get_local_blueprint_path(blueprint_name, local_path):
+    config = load_config()
+    local_path = Path(
+        config.get("blueprints", {}).get("local_directory", ".blueprints")
+    )
+    local_blueprint_path = local_path / blueprint_name
+
+    return local_blueprint_path
+
+
+def get_global_blueprint_path(blueprint_name, global_path):
+    config = load_config()
+    global_path = Path(
+        config.get("blueprints", {}).get("global_directory", "~/.blueprints")
+    ).expanduser()
+    global_blueprint_path = global_path / blueprint_name
+
+    return global_blueprint_path
+
+
 def get_blueprint_path(blueprint_name, local_path, global_path):
     config = load_config()
     local_path = Path(
@@ -26,7 +46,6 @@ def get_blueprint_path(blueprint_name, local_path, global_path):
     global_path = Path(
         config.get("blueprints", {}).get("global_directory", "~/.blueprints")
     ).expanduser()
-
     local_blueprint_path = local_path / blueprint_name
     global_blueprint_path = global_path / blueprint_name
 
@@ -181,6 +200,59 @@ def create_blueprint_command(blueprint_name, **kwargs):
     click.echo(f"Created new blueprint at {blueprint_path.parent}")
 
 
+def copy_blueprint_command(source_blueprint_name, destination_blueprint_name, global_src, global_dest):
+    local_path = Path(".blueprints")
+    global_path = Path.home() / ".blueprints"
+
+    if(global_src):
+        source_blueprint_path = get_global_blueprint_path(
+            source_blueprint_name, global_path
+        )
+    else:
+        source_blueprint_path = get_local_blueprint_path(
+            source_blueprint_name, local_path
+        )
+    if not source_blueprint_path:
+        click.echo(f"Source template '{source_blueprint_name}' not found.")
+        sys.exit(1)
+
+
+    if(global_dest):
+        destination_blueprint_path = get_global_blueprint_path(
+            destination_blueprint_name, global_path
+        )
+    else:
+        destination_blueprint_path = get_local_blueprint_path(
+            destination_blueprint_name, local_path
+        )
+
+    if destination_blueprint_path.exists():
+        click.echo(
+            f"Destination template '{destination_blueprint_name}' already exists."
+        )
+        sys.exit(1)
+
+    try:
+        shutil.copytree(source_blueprint_path, destination_blueprint_path)
+    except OSError as e:
+        click.echo(f"Error copying blueprint: {e}")
+        sys.exit(1)
+
+    if(global_src):
+        source_message = f"from the global '{source_blueprint_name}' blueprint"
+    else:
+        source_message = f"from the local '{source_blueprint_name}' blueprint"
+    
+    if(global_dest):
+        destination_message = f"'{destination_blueprint_name}' as a global blueprint"
+    else:
+        destination_message = f"'{destination_blueprint_name}' as a local blueprint"
+
+    click.echo(
+        f"Created {destination_message} {source_message}."
+    )
+
+
 
 # CLI commands
 @click.group()
@@ -250,40 +322,28 @@ def create_blueprint_alias(blueprint_name, **kwargs):
 
 
 @cli.command(
-    help="Copy an existing blueprint to a new blueprint in the local or global blueprint directory."
+    name="copy",
+    help="Create a copy of a blueprint"
 )
 @click.argument("source_blueprint_name")
 @click.argument("destination_blueprint_name")
-@click.option("--local", is_flag=True, help="Copy to local blueprint directory.")
-def copy_blueprint(source_blueprint_name, destination_blueprint_name, local):
-    local_path = Path(".blueprints")
-    global_path = Path.home() / ".blueprints"
-    source_blueprint_path = get_blueprint_path(
-        source_blueprint_name, local_path, global_path
-    )
+@click.option("-gs", "--global-src", is_flag=True, help="Copy a global blueprint.")
+@click.option("-gd", "--global-dest", is_flag=True, help="Create a global blueprint.")
+def copy_blueprint(source_blueprint_name, destination_blueprint_name, global_src, global_dest):
+    copy_blueprint_command(source_blueprint_name, destination_blueprint_name, global_src, global_dest)
 
-    if not source_blueprint_path:
-        click.echo(f"Source template '{source_blueprint_name}' not found.")
-        sys.exit(1)
 
-    destination_blueprint_path = local_path if local else global_path
-    destination_blueprint_path /= destination_blueprint_name
-
-    if destination_blueprint_path.exists():
-        click.echo(
-            f"Destination template '{destination_blueprint_name}' already exists."
-        )
-        sys.exit(1)
-
-    try:
-        shutil.copy2(source_blueprint_path, destination_blueprint_path)
-    except OSError as e:
-        click.echo(f"Error copying blueprint: {e}")
-        sys.exit(1)
-
-    click.echo(
-        f"Copied blueprint '{source_blueprint_name}' to '{destination_blueprint_name}'"
-    )
+@cli.command(
+    name="cp",
+    help="Create a copy of a blueprint",
+    hidden=True
+)
+@click.argument("source_blueprint_name")
+@click.argument("destination_blueprint_name")
+@click.option("-gs", "--global-src", is_flag=True, help="Copy a global blueprint.")
+@click.option("-gd", "--global-dest", is_flag=True, help="Create a global blueprint.")
+def copy_blueprint_alias(source_blueprint_name, destination_blueprint_name, global_src, global_dest):
+    copy_blueprint_command(source_blueprint_name, destination_blueprint_name, global_src, global_dest)
 
 
 @cli.command(

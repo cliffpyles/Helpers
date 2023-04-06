@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+
+process.env['SUPPRESS_NO_CONFIG_WARNING'] = true
+
+import { Command } from 'commander';
+
+import example from './commands/example.mjs';
+
+import packageJson from './package.json';
+
+const program = new Command();
+
+program
+  .version(packageJson.version)
+  .description('Description of the app');
+
+program
+  .command('example')
+  .description('Execute an example command')
+  .argument('exampleArg', 'example argument')
+  .action(example);
+
+program.parse(process.argv);

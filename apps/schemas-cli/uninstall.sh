@@ -8,4 +8,4 @@ npm uninstall
 npm unlink
 
 echo "The following applications were uninstalled:"
-echo "- {{blueprint_instance_name | kebab_case }}-cli"
+echo "- schemas-cli"

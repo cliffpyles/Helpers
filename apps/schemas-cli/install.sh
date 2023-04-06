@@ -9,15 +9,15 @@ echo "Home Directory: $HOME_DIR"
 echo "Helpers Directory: $HELPERS_DIR"
 echo "Script Directory: $SCRIPT_DIR"
 
-# Install dependencies
-npm install
-npm link
 
 # make a directory for user scripts if it doesn't exist
 if [ ! -d "$HOME_DIR/bin" ]; then
   mkdir "$HOME_DIR/bin"
 fi
 
+# Install dependencies
+npm install
+npm link
 
 echo "Installations complete."
-echo "Type '{{blueprint_instance_name | kebab_case }}' to use the {{blueprint_instance_name | kebab_case }}-cli app."
+echo "Type 'schema' to use the schemas-cli app."

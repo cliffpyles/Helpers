@@ -1,0 +1,20 @@
+{
+  "author": "Cliff Pyles <cliff@cliffpyles.com>",
+  "bin": {
+    "schema": "./schemas-cli.mjs"
+  },
+  "dependencies": {
+    "commander": "^10.0.0",
+    "joi": "^17.9.1",
+    "node-fetch": "^3.3.1"
+  },
+  "description": "",
+  "keywords": [],
+  "license": "MIT",
+  "main": "schemas-cli.mjs",
+  "name": "schemas-cli",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "1.0.0"
+}

@@ -164,6 +164,23 @@ def list_blueprints_command(_global):
         click.echo("No blueprints found.")
 
 
+def create_blueprint_command(blueprint_name, **kwargs):
+    if kwargs["global"]:
+        blueprint_path = Path.home() / ".blueprints" / blueprint_name / "files" / f"{blueprint_name}.j2"
+    else:
+        blueprint_path = Path(".blueprints") / blueprint_name / "files" / f"{blueprint_name}.j2"
+
+    if not blueprint_path.parent.exists():
+        blueprint_path.parent.mkdir(parents=True)
+
+    if blueprint_path.exists():
+        click.echo(f"Blueprint '{blueprint_name}' already exists.")
+        sys.exit(1)
+
+    blueprint_path.write_text(f"{blueprint_name} placeholder file")
+    click.echo(f"Created new blueprint at {blueprint_path.parent}")
+
+
 
 # CLI commands
 @click.group()
@@ -218,24 +235,18 @@ def list_blueprints_alias(**kwargs):
     list_blueprints_command(kwargs["global"])
 
 
-@cli.command(help="Create a new blueprint in the local or global blueprint directory.")
+@cli.command(name="create", help="Create a new blueprint.")
 @click.argument("blueprint_name")
-@click.option("--local", is_flag=True, help="Create local blueprint.")
-def create_blueprint(blueprint_name, local):
-    if local:
-        blueprint_path = Path(".blueprints") / blueprint_name / "files" / f"{blueprint_name}.j2"
-    else:
-        blueprint_path = Path.home() / ".blueprints" / blueprint_name / "files" / f"{blueprint_name}.j2"
+@click.option("-g", "--global", is_flag=True, help="Create global blueprint.")
+def create_blueprint(blueprint_name, **kwargs):
+    create_blueprint_command(blueprint_name, **kwargs)
 
-    if not blueprint_path.parent.exists():
-        blueprint_path.parent.mkdir(parents=True)
 
-    if blueprint_path.exists():
-        click.echo(f"Blueprint '{blueprint_name}' already exists.")
-        sys.exit(1)
-
-    blueprint_path.write_text(f"{blueprint_name} placeholder file")
-    click.echo(f"Created new blueprint at {blueprint_path.parent}")
+@cli.command(name="new", help="Create a new blueprint.", hidden=True)
+@click.argument("blueprint_name")
+@click.option("-g", "--global", is_flag=True, help="Create global blueprint.")
+def create_blueprint_alias(blueprint_name, **kwargs):
+    create_blueprint_command(blueprint_name, **kwargs)
 
 
 @cli.command(

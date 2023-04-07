@@ -1,7 +1,8 @@
 import Joi from 'joi'
 import fetch from 'node-fetch'
+import fs from 'fs/promises'
 
-async function jsonSchemaToJoi (input) {
+async function jsonSchemaToJoi (input, outputPath=null) {
   async function fetchSchema (url) {
     try {
       const response = await fetch(url)
@@ -106,16 +107,27 @@ async function jsonSchemaToJoi (input) {
     throw new Error(`Unsupported JSON schema type: ${schema.type}`)
   }
 
-  const isUrl = typeof input === 'string' && input.startsWith('http')
-  const jsonSchema = isUrl ? await fetchSchema(input) : input
+  const isUrl = typeof input === 'string' && input.startsWith('http');
+  const jsonSchema = isUrl ? await fetchSchema(input) : input;
 
-  const definitions = jsonSchema.definitions || {}
-  const resolvedSchema = resolveRef(jsonSchema, definitions)
+  const definitions = jsonSchema.definitions || {};
+  const resolvedSchema = resolveRef(jsonSchema, definitions);
 
-  return convert(resolvedSchema)
+  const joiSchema = convert(resolvedSchema);
+
+  if (outputPath) {
+    try {
+      await fs.writeFile(outputPath, JSON.stringify(joiSchema.describe(), null, 2));
+      console.log(`Joi schema saved to: ${outputPath}`);
+    } catch (error) {
+      throw new Error(`Error writing Joi schema to file: ${error.message}`);
+    }
+  }
+
+  return joiSchema;
 }
 
-async function createSchema ({ source }) {
+async function convertSchema ({ output, source }) {
   try {
     const location = new URL(source)
 
@@ -123,14 +135,11 @@ async function createSchema ({ source }) {
       throw new Error('The --source argument must be a valid URL.')
     }
 
-    const joiSchema = await jsonSchemaToJoi(source)
-
-    console.log(joiSchema)
-
+    const joiSchema = await jsonSchemaToJoi(source, output)
   } catch (error) {
-    // console.error('createSchema: ', err)
+    // console.error('convertSchema: ', err)
     console.error(`Error: ${error.message}`);
   }
 }
 
-export default createSchema
+export default convertSchema

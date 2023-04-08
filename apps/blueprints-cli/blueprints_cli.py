@@ -125,23 +125,27 @@ def download_remote_blueprint(blueprint_name, remote_repository):
         return None
 
 
-def process_blueprint_templates(templates, target_dir, env, variables):
+def process_blueprint_templates(templates, target_dir, env, variables, force):
     if not variables:
         variables = {}
 
     for template in templates:
         target_name = env.from_string(template.name.replace("___", "|")).render(variables)
         target_path = target_dir / target_name.strip(".j2")
-        target_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        if target_path.exists() and not force:
+            click.echo(f"Skipped: File '{target_path}' already exists. Use --force to overwrite.")
+        else:
+            target_path.parent.mkdir(parents=True, exist_ok=True)
 
-        rendered_content = template.render(variables)
+            rendered_content = template.render(variables)
 
-        with open(target_path, "w") as target_file:
-            target_file.write(rendered_content)
+            with open(target_path, "w") as target_file:
+                target_file.write(rendered_content)
 
-        copy_permissions(template.filename, target_path)
+            copy_permissions(template.filename, target_path)
 
-        click.echo(f"Generated: {target_path}")
+            click.echo(f"Generated: {target_path}")
 
 
 def process_variables(variables_str, metadata):
@@ -167,7 +171,7 @@ def process_variables(variables_str, metadata):
     return variables
 
 
-def generate_files_from_blueprint(blueprint_path, blueprint_instance_name, variables_str, output):
+def generate_files_from_blueprint(blueprint_path, blueprint_instance_name, variables_str, output, force):
     blueprint_templates_dir = blueprint_path / "files"
     template_files = glob.glob("**/*.j2", root_dir=blueprint_templates_dir, recursive=True)
     env = get_environment_with_custom_pipes(blueprint_templates_dir)
@@ -176,12 +180,11 @@ def generate_files_from_blueprint(blueprint_path, blueprint_instance_name, varia
         "blueprint_name": blueprint_path.name,
         "blueprint_instance_name": blueprint_instance_name
     }
-    # blueprint_variables = get_blueprint_variables(variables, metadata)
     blueprint_variables = process_variables(variables_str, metadata)
-    process_blueprint_templates(templates, Path(output), env, blueprint_variables)
+    process_blueprint_templates(templates, Path(output), env, blueprint_variables, force)
     
 
-def generate_command(blueprint_name, blueprint_instance_name, variables_str, output):
+def generate_command(blueprint_name, blueprint_instance_name, variables_str, output, force):
     local_path = Path(".blueprints")
     global_path = Path.home() / ".blueprints"
     blueprint_path = get_blueprint_path(blueprint_name, local_path, global_path)
@@ -190,7 +193,7 @@ def generate_command(blueprint_name, blueprint_instance_name, variables_str, out
         click.echo(f"Blueprint '{blueprint_name}' not found.")
         sys.exit(1)
 
-    generate_files_from_blueprint(blueprint_path, blueprint_instance_name, variables_str, output)
+    generate_files_from_blueprint(blueprint_path, blueprint_instance_name, variables_str, output, force)
 
 
 def list_blueprints_command(_global):
@@ -302,8 +305,9 @@ def init():
 @click.argument("blueprint_instance_name")
 @click.option("--var", type=str, multiple=True, help="User-defined variables in 'name==value' or 'field:=json' format.")
 @click.option("--output", type=str, help="Output file path.")
-def generate(blueprint_name, blueprint_instance_name, var, output):
-    generate_command(blueprint_name, blueprint_instance_name, var, output)
+@click.option("--force", is_flag=True, default=False, help="Overwrite existing files.")
+def generate(blueprint_name, blueprint_instance_name, var, output, force):
+    generate_command(blueprint_name, blueprint_instance_name, var, output, force)
 
 
 @cli.command(name="g", help="Generate files from a blueprint.", hidden=True)
@@ -311,8 +315,9 @@ def generate(blueprint_name, blueprint_instance_name, var, output):
 @click.argument("blueprint_instance_name")
 @click.option("--var", type=str, multiple=True, help="User-defined variables in 'name==value' or 'field:=json' format.")
 @click.option("--output", type=str, help="Output file path.", default="./")
-def generate_alias(blueprint_name, blueprint_instance_name, var, output):
-    generate_command(blueprint_name, blueprint_instance_name, var, output)
+@click.option("--force", is_flag=True, default=False, help="Overwrite existing files.")
+def generate_alias(blueprint_name, blueprint_instance_name, var, output, force):
+    generate_command(blueprint_name, blueprint_instance_name, var, output, force)
 
 
 @cli.command(

@@ -2,15 +2,18 @@
 
 import glob
 import requests
-from urllib.parse import urljoin
 import os
 import sys
 import click
 import yaml
-from pathlib import Path
 import shutil
+import json
+from urllib.parse import urljoin
+from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound
 from pipes import capitalize, upper, lower, kebab_case, snake_case, camel_case, pascal_case
+
+
 
 # Helper functions
 def load_config_file(file_path):
@@ -141,7 +144,30 @@ def process_blueprint_templates(templates, target_dir, env, variables):
         click.echo(f"Generated: {target_path}")
 
 
-def generate_files_from_blueprint(blueprint_path, blueprint_instance_name, variables, output):
+def process_variables(variables_str, metadata):
+    variables = {}
+
+    if variables_str:
+        for variable_str in variables_str:
+            if '==' in variable_str:
+                key, value = variable_str.split('==', 1)
+                variables[key] = value
+            elif ':=' in variable_str:
+                key, value = variable_str.split(':=', 1)
+                try:
+                    json_value = json.loads(value)
+                except json.JSONDecodeError as e:
+                    click.echo(f"Error parsing JSON for variable '{key}': {e}")
+                    sys.exit(1)
+
+                variables[key] = json_value
+
+    variables.update(metadata)
+
+    return variables
+
+
+def generate_files_from_blueprint(blueprint_path, blueprint_instance_name, variables_str, output):
     blueprint_templates_dir = blueprint_path / "files"
     template_files = glob.glob("**/*.j2", root_dir=blueprint_templates_dir, recursive=True)
     env = get_environment_with_custom_pipes(blueprint_templates_dir)
@@ -150,11 +176,12 @@ def generate_files_from_blueprint(blueprint_path, blueprint_instance_name, varia
         "blueprint_name": blueprint_path.name,
         "blueprint_instance_name": blueprint_instance_name
     }
-    blueprint_variables = get_blueprint_variables(variables, metadata)
+    # blueprint_variables = get_blueprint_variables(variables, metadata)
+    blueprint_variables = process_variables(variables_str, metadata)
     process_blueprint_templates(templates, Path(output), env, blueprint_variables)
     
 
-def generate_command(blueprint_name, blueprint_instance_name, variables, output):
+def generate_command(blueprint_name, blueprint_instance_name, variables_str, output):
     local_path = Path(".blueprints")
     global_path = Path.home() / ".blueprints"
     blueprint_path = get_blueprint_path(blueprint_name, local_path, global_path)
@@ -163,7 +190,7 @@ def generate_command(blueprint_name, blueprint_instance_name, variables, output)
         click.echo(f"Blueprint '{blueprint_name}' not found.")
         sys.exit(1)
 
-    generate_files_from_blueprint(blueprint_path, blueprint_instance_name, variables, output)
+    generate_files_from_blueprint(blueprint_path, blueprint_instance_name, variables_str, output)
 
 
 def list_blueprints_command(_global):
@@ -273,19 +300,19 @@ def init():
 @cli.command(name="generate", help="Generate files from a blueprint.")
 @click.argument("blueprint_name")
 @click.argument("blueprint_instance_name")
-@click.option("--variables", type=str, help="Template variables in YAML format.")
+@click.option("--var", type=str, multiple=True, help="User-defined variables in 'name==value' or 'field:=json' format.")
 @click.option("--output", type=str, help="Output file path.")
-def generate(blueprint_name, blueprint_instance_name, variables, output):
-    generate_command(blueprint_name, blueprint_instance_name, variables, output)
+def generate(blueprint_name, blueprint_instance_name, var, output):
+    generate_command(blueprint_name, blueprint_instance_name, var, output)
 
 
 @cli.command(name="g", help="Generate files from a blueprint.", hidden=True)
 @click.argument("blueprint_name")
 @click.argument("blueprint_instance_name")
-@click.option("--variables", type=str, help="Template variables in YAML format.")
+@click.option("--var", type=str, multiple=True, help="User-defined variables in 'name==value' or 'field:=json' format.")
 @click.option("--output", type=str, help="Output file path.", default="./")
-def generate_alias(blueprint_name, blueprint_instance_name, variables, output):
-    generate_command(blueprint_name, blueprint_instance_name, variables, output)
+def generate_alias(blueprint_name, blueprint_instance_name, var, output):
+    generate_command(blueprint_name, blueprint_instance_name, var, output)
 
 
 @cli.command(

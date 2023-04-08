@@ -283,7 +283,7 @@ def generate(blueprint_name, blueprint_instance_name, variables, output):
 @click.argument("blueprint_name")
 @click.argument("blueprint_instance_name")
 @click.option("--variables", type=str, help="Template variables in YAML format.")
-@click.option("--output", type=str, help="Output file path.")
+@click.option("--output", type=str, help="Output file path.", default="./")
 def generate_alias(blueprint_name, blueprint_instance_name, variables, output):
     generate_command(blueprint_name, blueprint_instance_name, variables, output)
 

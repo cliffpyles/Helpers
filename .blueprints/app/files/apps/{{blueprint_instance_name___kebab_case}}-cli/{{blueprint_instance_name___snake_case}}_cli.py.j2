@@ -9,8 +9,6 @@ import click
 import yaml
 from pathlib import Path
 import shutil
-from jinja2 import Environment, FileSystemLoader, Template, TemplateNotFound
-from pipes import capitalize, upper, lower, kebab_case, snake_case, camel_case, pascal_case
 
 # Helper functions
 def load_config_file(file_path):
@@ -32,8 +30,8 @@ def cli():
     pass
 
 
-@cli.command(help="Initialize a project for local blueprint support.")
-def init():
+@cli.command(help="Example command for the CLI based app.")
+def example():
     config = load_config()
     click.echo("Command executed")
 

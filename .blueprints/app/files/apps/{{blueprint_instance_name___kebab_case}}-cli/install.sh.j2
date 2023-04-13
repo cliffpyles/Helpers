@@ -9,8 +9,14 @@ echo "Home Directory: $HOME_DIR"
 echo "Helpers Directory: $HELPERS_DIR"
 echo "Script Directory: $SCRIPT_DIR"
 
-# Install dependencies
+# install dependencies
 pip install -r $SCRIPT_DIR/requirements.txt
+
+# create a config file for the app if it doesn't exist
+if [ ! -f "$HOME_DIR/.{{blueprint_instance_name | snake_case }}/config.yaml" ]; then
+  mkdir "$HOME_DIR/.{{blueprint_instance_name | snake_case }}"
+  touch "$HOME_DIR/.{{blueprint_instance_name | snake_case }}/config.yaml"
+fi
 
 # make a directory for user scripts if it doesn't exist
 if [ ! -d "$HOME_DIR/bin" ]; then

@@ -201,6 +201,27 @@ def models_command():
         print(f"{model}")
 
 
+def fork_command(source_conversation_name, new_conversation_name, model):
+    conversation_dir = Path.home() / ".chatai/conversations"
+    source_conversation_file = conversation_dir / f"{source_conversation_name}__{model}.json"
+    new_conversation_file = conversation_dir / f"{new_conversation_name}__{model}.json"
+
+    if not source_conversation_file.is_file():
+        print(f"\nSource conversation file not found: {source_conversation_file}\n")
+        return
+
+    if new_conversation_file.is_file():
+        print(f"\nNew conversation file already exists: {new_conversation_file}\n")
+        return
+
+    try:
+        source_conversation = json.loads(source_conversation_file.read_text())
+        new_conversation_file.write_text(json.dumps(source_conversation, indent=2))
+        print(f"\nForked conversation '{source_conversation_name}' to '{new_conversation_name}' with model '{model}'\n")
+    except Exception as e:
+        print(f"\nError forking conversation: {e}\n")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Ask questions to OpenAPI.")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -222,6 +243,11 @@ def main():
     draw_parser.add_argument("image_description", type=str, help="Description of the image.")
     draw_parser.add_argument("-b", "--browser", action="store_true", help="Opens image in a new browser tab.")
     draw_parser.add_argument("-s", "--size", type=str, default="256", choices=["256", "512", "1024"], help="Size of the image in pixels.")
+
+    fork_parser = subparsers.add_parser("fork", help="Fork a conversation.")
+    fork_parser.add_argument("source_conversation_name", type=str, help="Name of the conversation to fork.")
+    fork_parser.add_argument("new_conversation_name", type=str, help="Name of the new forked conversation.")
+    fork_parser.add_argument("-m", "--model", type=str, default=VALID_CONVERSATION_MODELS[0], choices=VALID_CONVERSATION_MODELS, help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}")
 
     list_parser = subparsers.add_parser("list", help="List existing conversations.")
 
@@ -247,6 +273,9 @@ def main():
 
     elif args.command == "draw":
         draw_command(args.image_description, args.browser, args.size)
+
+    elif args.command == "fork":
+        fork_command(args.source_conversation_name, args.new_conversation_name, args.model)
 
     elif args.command == "list":
         list_command()

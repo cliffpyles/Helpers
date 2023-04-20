@@ -102,11 +102,14 @@ def open_conversation(conversation_name, model):
 
 
 def view_message(message):
+    
     if message["role"] == "user":
-            print(f"\n{message['name']} > {message['content']}\n")
+        print(f"\n> {message['name']} ({message['id']}):\n")
+        print(f"\n{message['content']}\n")
     else:
-        print(f"\n{message['content']}\n\n")
-        print(f"-----")
+        print(f"\n> {message['role']} ({message['id']}):\n")
+        print(f"\n{message['content']}\n")
+        print(f"\n-----\n\n")
 
 
 def conversation_command(conversation_name, model):
@@ -128,17 +131,22 @@ def conversation_command(conversation_name, model):
             break
 
         try:
+            user_message_id = str(uuid.uuid4())
             user_message = {
+                "id": user_message_id,
                 "role": "user",
                 "name": username,
                 "content": f"{user_input}",
             }
             response = create_conversation_completion(user_message, model, conversation)
             choice = response["choices"][0]
+            assistant_message_id = str(uuid.uuid4())
+            assistant_message = choice["message"].to_dict_recursive()
+            assistant_message["id"] = assistant_message_id
             conversation.append(user_message)
-            conversation.append(choice["message"].to_dict_recursive())
+            conversation.append(assistant_message)
             conversation_file.write_text(json.dumps(conversation, indent=2))
-            view_message(choice["message"])
+            view_message(assistant_message)
 
         except Exception as e:
             print(f"Error: {e}")

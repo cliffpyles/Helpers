@@ -182,6 +182,17 @@ def draw_command(image_description, browser, size):
         webbrowser.open_new_tab(image_url)
 
 
+def models_command():
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+    response = openai.Model.list()
+    models = [ model["id"] for model in response["data"] ]
+    models.sort()
+
+    print("\nAvailable Models:\n")
+    for model in models:
+        print(f"{model}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Ask questions to OpenAPI.")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -206,6 +217,8 @@ def main():
 
     list_parser = subparsers.add_parser("list", help="List existing conversations.")
 
+    models_parser = subparsers.add_parser("models")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -229,6 +242,9 @@ def main():
 
     elif args.command == "list":
         list_command()
+
+    elif args.command == "models":
+        models_command()
 
 
 if __name__ == "__main__":

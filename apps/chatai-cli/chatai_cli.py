@@ -50,7 +50,7 @@ def create_conversation_completion(user_message, model, previous_messages):
 def open_conversation(conversation_name, model):
     conversation_dir = Path.home() / ".chatai/conversations"
     conversation_dir.mkdir(parents=True, exist_ok=True)
-    conversation_file = conversation_dir / f"{conversation_name}_{model}.json"
+    conversation_file = conversation_dir / f"{conversation_name}__{model}.json"
     conversation = []
 
     if conversation_file.is_file():
@@ -109,6 +109,23 @@ def view_choice(choice):
     print("\nChatGPT Response:\n")
     print(choice["message"]["content"])
 
+def list_conversations():
+    conversation_dir = Path.home() / ".chatai/conversations"
+    conversation_files = conversation_dir.glob("*__gpt-*.json")
+
+    conversations = []
+    for file in conversation_files:
+        conversation_name, model = file.stem.split("__")
+        conversations.append({"name": conversation_name, "model": model})
+
+    if not conversations:
+        print("\nNo existing conversations found.\n")
+    else:
+        print("Existing conversations:")
+        for conversation in conversations:
+            print(f"\nName: {conversation['name']} | Model: {conversation['model']}\n")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Ask questions to OpenAPI.")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -122,6 +139,8 @@ def main():
     conversation_parser.add_argument("conversation_name", type=str, help="Name of the conversation.")
     conversation_parser.add_argument("-m", "--model", type=str, default=VALID_CONVERSATION_MODELS[0], choices=VALID_CONVERSATION_MODELS, help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}")
     conversation_parser.add_argument("-o", "--output-format", type=str, default="text", choices=["text", "json"], help="Output format (text or json).")
+
+    list_parser = subparsers.add_parser("list", help="List existing conversations.")
 
     args = parser.parse_args()
 
@@ -145,7 +164,10 @@ def main():
             print(f"Error: {e}")
 
     elif args.command == "conversation":
-            conversation_interactive(args.conversation_name, args.model, args.output_format)
+        conversation_interactive(args.conversation_name, args.model, args.output_format)
+
+    elif args.command == "list":
+        list_conversations()
 
 if __name__ == "__main__":
     main()

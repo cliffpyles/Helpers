@@ -18,6 +18,11 @@ if [ ! -f "$HOME_DIR/.chatai/config.yaml" ]; then
   touch "$HOME_DIR/.chatai/config.yaml"
 fi
 
+# make a directory for conversations if it doesn't exist
+if [ ! -d "$HOME_DIR/bin" ]; then
+  mkdir "$HOME_DIR/.chatai/conversations"
+fi
+
 # make a directory for user scripts if it doesn't exist
 if [ ! -d "$HOME_DIR/bin" ]; then
   mkdir "$HOME_DIR/bin"

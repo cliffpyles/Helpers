@@ -16,7 +16,7 @@ def clear_screen():
     else:
         os.system('cls')
 
-def create_ask_completion(user_input, model):
+def ask_command(user_input, model):
     openai.api_key = os.environ["OPENAI_API_KEY"]
     username = os.getlogin()
 
@@ -47,7 +47,7 @@ def create_conversation_completion(user_message, model, previous_messages):
 
     return response
 
-def delete_conversation(conversation_name, model, force=False):
+def delete_command(conversation_name, model, force=False):
     conversation_dir = Path.home() / ".chatai/conversations"
     conversation_file = conversation_dir / f"{conversation_name}__{model}.json"
 
@@ -90,7 +90,7 @@ def view_message(message):
         print(f"\n{message['content']}\n\n")
         print(f"-----")
 
-def conversation_interactive(conversation_name, model, output_format):
+def conversation_command(conversation_name, model, output_format):
     clear_screen()
     print("\nEntering an interactive conversation. \n\nType 'exit' to end the conversation.\n")
     username = os.getlogin()
@@ -128,7 +128,7 @@ def view_choice(choice):
     print("\nChatGPT Response:\n")
     print(choice["message"]["content"])
 
-def list_conversations():
+def list_command():
     conversation_dir = Path.home() / ".chatai/conversations"
     conversation_files = conversation_dir.glob("*__gpt-*.json")
 
@@ -177,7 +177,7 @@ def main():
 
     if args.command == "ask":
         try:
-            response = create_ask_completion(args.user_input, args.model)
+            response = ask_command(args.user_input, args.model)
 
             if args.output_format == "json":
                 print(json.dumps({"input": args.user_input, "response": response}, indent=2))
@@ -188,13 +188,13 @@ def main():
             print(f"Error: {e}")
 
     elif args.command == "conversation":
-        conversation_interactive(args.conversation_name, args.model, args.output_format)
+        conversation_command(args.conversation_name, args.model, args.output_format)
 
     elif args.command == "delete":
-        delete_conversation(args.conversation_name, args.model, args.force)
+        delete_command(args.conversation_name, args.model, args.force)
 
     elif args.command == "list":
-        list_conversations()
+        list_command()
 
 if __name__ == "__main__":
     main()

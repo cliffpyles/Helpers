@@ -6,6 +6,7 @@ import os
 import json
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+import webbrowser
 
 VALID_ASK_MODELS = ["gpt-3.5-turbo", "gpt-4"]
 VALID_CONVERSATION_MODELS = ["gpt-3.5-turbo", "gpt-4"]
@@ -144,6 +145,20 @@ def list_command():
         for conversation in conversations:
             print(f"\nName: {conversation['name']} | Model: {conversation['model']}\n")
 
+def draw_command(image_description, browser, size):
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+    username = os.getlogin()
+    response = openai.Image.create(
+        prompt=f"{image_description}",
+        n=1,
+        size=f"{size}x{size}"
+    )
+    image_url = response['data'][0]['url']
+
+    print(f"Preview: {image_url}")
+
+    if browser:
+        webbrowser.open_new_tab(image_url)
 
 def main():
     parser = argparse.ArgumentParser(description="Ask questions to OpenAPI.")
@@ -163,6 +178,11 @@ def main():
     delete_parser.add_argument("conversation_name", type=str, help="Name of the conversation to delete.")
     delete_parser.add_argument("-m", "--model", type=str, default=VALID_CONVERSATION_MODELS[0], choices=VALID_CONVERSATION_MODELS, help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}")
     delete_parser.add_argument("-f", "--force", action="store_true", help="Force deletion without confirmation.")
+
+    draw_parser = subparsers.add_parser("draw", help="Draw an image based on a description.")
+    draw_parser.add_argument("image_description", type=str, help="Description of the image.")
+    draw_parser.add_argument("-b", "--browser", action="store_true", help="Opens image in a new browser tab.")
+    draw_parser.add_argument("-s", "--size", type=str, default="256", choices=["256", "512", "1024"], help="Size of the image in pixels.")
 
     list_parser = subparsers.add_parser("list", help="List existing conversations.")
 
@@ -192,6 +212,9 @@ def main():
 
     elif args.command == "delete":
         delete_command(args.conversation_name, args.model, args.force)
+
+    elif args.command == "draw":
+        draw_command(args.image_description, args.browser, args.size)
 
     elif args.command == "list":
         list_command()

@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 import webbrowser
+import uuid
 
 VALID_ASK_MODELS = ["gpt-3.5-turbo", "gpt-4"]
 VALID_CONVERSATION_MODELS = ["gpt-3.5-turbo", "gpt-4"]
@@ -22,6 +23,7 @@ def clear_screen():
 def ask_command(user_input, model):
     openai.api_key = os.environ["OPENAI_API_KEY"]
     username = os.getlogin()
+    mac_address = hex(uuid.getnode())
     file_input = Path(user_input)
 
     if file_input.is_file():
@@ -38,7 +40,8 @@ def ask_command(user_input, model):
                 "name": username,
                 "content": f"{content}"
             }
-        ]
+        ],
+        user=f"{mac_address}::{username}"
     )
 
     view_choice(response["choices"][0])
@@ -46,13 +49,15 @@ def ask_command(user_input, model):
 
 def create_conversation_completion(user_message, model, previous_messages):
     openai.api_key = os.environ["OPENAI_API_KEY"]
-    
+    username = os.getlogin()
+    mac_address = hex(uuid.getnode())
     system_messages = [{"role": "system", "content": "You are a helpful assistant."}]
     
     messages = system_messages + previous_messages + [user_message]
     response = openai.ChatCompletion.create(
         model=model,
-        messages=messages
+        messages=messages,
+        user=f"{mac_address}::{username}"
     )
 
     return response

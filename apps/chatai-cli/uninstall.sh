@@ -6,6 +6,7 @@ HELPERS_DIR=$(eval echo "$PWD")
 
 # create a symlink to the script in the user scripts directory
 unlink "$HOME_DIR/bin/chatai"
+unlink "$HOME_DIR/bin/chat"
 
 echo "The following applications were uninstalled:"
 echo " - chatai-cli"

@@ -30,6 +30,7 @@ fi
 
 # create symlinks to the script in the user scripts directory
 ln -s "$SCRIPT_DIR/chatai_cli.py" "$HOME_DIR/bin/chatai"
+ln -s "$SCRIPT_DIR/chatai_cli.py" "$HOME_DIR/bin/chat"
 
 # add the user scripts directory to the PATH
 if ! grep -q "$HOME_DIR/bin" "$HOME_DIR/.bashrc"; then

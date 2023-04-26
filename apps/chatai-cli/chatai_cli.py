@@ -14,32 +14,59 @@ VALID_CONVERSATION_MODELS = ["gpt-3.5-turbo", "gpt-4"]
 
 
 def clear_screen():
-    if(os.name == 'posix'):
-        os.system('clear')
-    else:
-        os.system('cls')
+    os.system('clear') if os.name == 'posix' else os.system('cls')
 
 
-def ask_command(user_input, model):
-    openai.api_key = os.environ["OPENAI_API_KEY"]
+def get_conversation_file_path(conversation_name, model):
+    conversation_dir = Path.home() / ".chatai/conversations"
+    conversation_file = conversation_dir / f"{conversation_name}__{model}.json"
+    return conversation_file
+
+
+def get_conversations_directory():
+    conversation_dir = Path.home() / ".chatai/conversations"
+    return conversation_dir
+
+
+def get_user_information():
     username = os.getlogin()
     mac_address = hex(uuid.getnode())
+    return username, mac_address
+
+
+def create_message(role, content, name=None):
+    message = {
+        "role": role,
+        "content": content
+    }
+    if name:
+        message["name"] = name
+    return message
+
+
+def create_system_message():
+    return create_message("system", "You are a helpful assistant.")
+
+
+def create_user_message(username, content):
+    return create_message("user", content, name=username)
+
+
+def ask_command(args):
+    user_input = args.user_input
+    model = args.model
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+    username, mac_address = get_user_information()
     file_input = Path(user_input)
 
-    if file_input.is_file():
-        content = file_input.read_text()
-    else:
-        content = user_input
+    content = file_input.read_text() if file_input.is_file() else user_input
+
 
     response = openai.ChatCompletion.create(
         model=model,
         messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {
-                "role": "user",
-                "name": username,
-                "content": f"{content}"
-            }
+            create_system_message(),
+            create_user_message(username, content)
         ],
         user=f"{mac_address}::{username}"
     )
@@ -49,11 +76,19 @@ def ask_command(user_input, model):
 
 def create_conversation_completion(user_message, model, previous_messages):
     openai.api_key = os.environ["OPENAI_API_KEY"]
-    username = os.getlogin()
-    mac_address = hex(uuid.getnode())
-    system_messages = [{"role": "system", "content": "You are a helpful assistant."}]
-    
-    messages = system_messages + previous_messages + [user_message]
+    username, mac_address = get_user_information()
+
+    messages_without_id = []
+    for message in previous_messages + [user_message]:
+        message_without_id = {
+            "role": message["role"],
+            "content": message["content"]
+        }
+        if "name" in message:
+            message_without_id["name"] = message["name"]
+        messages_without_id.append(message_without_id)
+
+    messages = [create_system_message()] + messages_without_id
     response = openai.ChatCompletion.create(
         model=model,
         messages=messages,
@@ -63,9 +98,11 @@ def create_conversation_completion(user_message, model, previous_messages):
     return response
 
 
-def delete_command(conversation_name, model, force=False):
-    conversation_dir = Path.home() / ".chatai/conversations"
-    conversation_file = conversation_dir / f"{conversation_name}__{model}.json"
+def delete_command(args):
+    conversation_name = args.conversation_name
+    model = args.model
+    force = args.force
+    conversation_file = get_conversation_file_path(conversation_name, model)
 
     if not conversation_file.is_file():
         print(f"\nConversation file not found: {conversation_file}\n")
@@ -86,7 +123,7 @@ def delete_command(conversation_name, model, force=False):
 def open_conversation(conversation_name, model):
     conversation_dir = Path.home() / ".chatai/conversations"
     conversation_dir.mkdir(parents=True, exist_ok=True)
-    conversation_file = conversation_dir / f"{conversation_name}__{model}.json"
+    conversation_file = get_conversation_file_path(conversation_name, model)
     conversation = []
 
     if conversation_file.is_file():
@@ -112,10 +149,12 @@ def view_message(message):
         print(f"\n-----\n\n")
 
 
-def conversation_command(conversation_name, model):
+def conversation_command(args):
     clear_screen()
     print("\nEntering an interactive conversation. \n\nType 'exit' to end the conversation.\n")
-    username = os.getlogin()
+    conversation_name = args.conversation_name
+    model = args.model
+    username, _ = get_user_information()
     conversation, conversation_file = open_conversation(conversation_name, model)
 
     print("\n-----\n")
@@ -157,8 +196,8 @@ def view_choice(choice):
     print(choice["message"]["content"])
 
 
-def list_command():
-    conversation_dir = Path.home() / ".chatai/conversations"
+def list_command(args):
+    conversation_dir = get_conversations_directory()
     conversation_files = conversation_dir.glob("*__gpt-*.json")
 
     conversations = []
@@ -174,9 +213,12 @@ def list_command():
             print(f"\nName: {conversation['name']} | Model: {conversation['model']}\n")
 
 
-def draw_command(image_description, browser, size):
+def draw_command(args):
+    image_description = args.image_description
+    browser = args.browser
+    size = args.size
     openai.api_key = os.environ["OPENAI_API_KEY"]
-    username = os.getlogin()
+    username, _ = get_user_information()
     response = openai.Image.create(
         prompt=f"{image_description}",
         n=1,
@@ -190,10 +232,10 @@ def draw_command(image_description, browser, size):
         webbrowser.open_new_tab(image_url)
 
 
-def models_command():
+def models_command(args):
     openai.api_key = os.environ["OPENAI_API_KEY"]
     response = openai.Model.list()
-    models = [ model["id"] for model in response["data"] ]
+    models = [model["id"] for model in response["data"]]
     models.sort()
 
     print("\nAvailable Models:\n")
@@ -201,10 +243,12 @@ def models_command():
         print(f"{model}")
 
 
-def fork_command(source_conversation_name, new_conversation_name, model):
-    conversation_dir = Path.home() / ".chatai/conversations"
-    source_conversation_file = conversation_dir / f"{source_conversation_name}__{model}.json"
-    new_conversation_file = conversation_dir / f"{new_conversation_name}__{model}.json"
+def fork_command(args):
+    source_conversation_name = args.source_conversation_name
+    new_conversation_name = args.new_conversation_name
+    model = args.model
+    source_conversation_file = get_conversation_file_path(source_conversation_name, model)
+    new_conversation_file = get_conversation_file_path(new_conversation_name, model)
 
     if not source_conversation_file.is_file():
         print(f"\nSource conversation file not found: {source_conversation_file}\n")
@@ -222,10 +266,7 @@ def fork_command(source_conversation_name, new_conversation_name, model):
         print(f"\nError forking conversation: {e}\n")
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Ask questions to OpenAPI.")
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
-
+def configure_subparsers(subparsers):
     ask_parser = subparsers.add_parser("ask", help="Ask a general question.")
     ask_parser.add_argument("user_input", type=str, help="User input to send the API.")
     ask_parser.add_argument("-m", "--model", type=str, default=VALID_ASK_MODELS[0], choices=VALID_ASK_MODELS, help=f"Language model to use. Valid models: {', '.join(VALID_ASK_MODELS)}")
@@ -253,6 +294,12 @@ def main():
 
     models_parser = subparsers.add_parser("models")
 
+
+def main():
+    parser = argparse.ArgumentParser(description="Ask questions to OpenAPI.")
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+    configure_subparsers(subparsers)
+
     args = parser.parse_args()
 
     if not args.command:
@@ -262,26 +309,17 @@ def main():
     if "OPENAI_API_KEY" not in os.environ:
         os.environ["OPENAI_API_KEY"] = input("Enter your OpenAI API Key: ")
 
-    if args.command == "ask":
-        ask_command(args.user_input, args.model)
+    command_mapper = {
+        "ask": ask_command,
+        "conversation": conversation_command,
+        "delete": delete_command,
+        "draw": draw_command,
+        "fork": fork_command,
+        "list": list_command,
+        "models": models_command,
+    }
 
-    elif args.command == "conversation":
-        conversation_command(args.conversation_name, args.model)
-
-    elif args.command == "delete":
-        delete_command(args.conversation_name, args.model, args.force)
-
-    elif args.command == "draw":
-        draw_command(args.image_description, args.browser, args.size)
-
-    elif args.command == "fork":
-        fork_command(args.source_conversation_name, args.new_conversation_name, args.model)
-
-    elif args.command == "list":
-        list_command()
-
-    elif args.command == "models":
-        models_command()
+    command_mapper[args.command](args)
 
 
 if __name__ == "__main__":

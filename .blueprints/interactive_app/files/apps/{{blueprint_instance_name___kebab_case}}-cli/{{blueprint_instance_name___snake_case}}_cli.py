@@ -28,6 +28,12 @@ class RangeValidator(object):
             raise ValidationError("", reason="Please enter a valid number")
 
 
+def read_file(file_path):
+    with open(file_path, 'r') as file:
+        content = file.read()
+    return content
+
+
 def load_config(file_path):
     with open(file_path, 'r') as config_file:
         if file_path.endswith('.json'):
@@ -61,6 +67,8 @@ def display_prompts(config, arguments):
             if min_value is not None and max_value is not None:
                 kwargs['validate'] = RangeValidator(min_value, max_value)
             question = inquirer.Text(**kwargs)
+        elif prompt_type == 'file':
+            question = inquirer.Text(**kwargs)
         else:
             raise ValueError(f'Invalid prompt type: {prompt_type}')
 
@@ -68,6 +76,13 @@ def display_prompts(config, arguments):
 
     user_responses = inquirer.prompt(questions)
     responses = {**arguments, **user_responses}
+
+    for prompt in config:
+        prompt_key = prompt.get('key')
+        prompt_type = prompt['type']
+        if prompt_type == 'file' and responses.get(prompt_key) is not None:
+            responses[prompt_key] = read_file(responses[prompt_key])
+
     return {k: v for k, v in responses.items() if v is not None}
 
 
@@ -84,6 +99,10 @@ def generate_options(config):
                 option = click.Option(param_decls=[f'--{prompt_key}'],
                                       type=click.Choice(choices, case_sensitive=False),
                                       help=f'Pass your {prompt_key} preference as an argument.')
+            elif prompt_type == 'file':
+                option = click.Option(param_decls=[f'--{prompt_key}'],
+                                      type=click.Path(exists=True, dir_okay=False, resolve_path=True),
+                                      help=f'Pass the file path for {prompt_key} as an argument.')
             else:
                 option = click.Option(param_decls=[f'--{prompt_key}'],
                                       type=str,

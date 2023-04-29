@@ -32,3 +32,9 @@
     message: "How old are you?"
     min: 1
     max: 100
+
+- key: file_input
+  type: file
+  kwargs:
+    name: file_input
+    message: "Please provide the file path for the file input:"

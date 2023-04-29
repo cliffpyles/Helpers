@@ -1,0 +1,12 @@
+- key: name
+  type: text
+  kwargs:
+    message: "What's your name?"
+- key: color
+  type: radio
+  kwargs:
+    message: "Choose a color:"
+    choices:
+      - Red
+      - Blue
+      - Green

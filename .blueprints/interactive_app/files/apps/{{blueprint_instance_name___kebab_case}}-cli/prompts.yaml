@@ -1,40 +1,44 @@
-- key: name
-  type: text
-  kwargs:
-    name: name
-    message: "What's your name?"
+context: You are a helpful assistant.
+prompts:
+  - key: name
+    type: text
+    kwargs:
+      name: name
+      message: "What's your name?"
 
-- key: color
-  type: radio
-  kwargs:
-    name: color
-    message: "Choose a color:"
-    choices:
-      - Red
-      - Blue
-      - Green
+  - key: color
+    type: radio
+    kwargs:
+      name: color
+      message: "Choose a color:"
+      choices:
+        - Red
+        - Blue
+        - Green
 
-- key: languages
-  type: checkbox
-  kwargs:
-    name: languages
-    message: "Select the programming languages you know:"
-    choices:
-      - Python
-      - JavaScript
-      - Java
-      - C++
+  - key: languages
+    type: checkbox
+    kwargs:
+      name: languages
+      message: "Select the programming languages you know:"
+      choices:
+        - Python
+        - JavaScript
+        - Java
+        - C++
 
-- key: age
-  type: range
-  kwargs:
-    name: age
-    message: "How old are you?"
-    min: 1
-    max: 100
+  - key: age
+    type: range
+    kwargs:
+      name: age
+      message: "How old are you?"
+      min: 1
+      max: 100
 
-- key: file_input
-  type: file
-  kwargs:
-    name: file_input
-    message: "Please provide the file path for the file input:"
+  - key: file_input
+    type: file
+    kwargs:
+      name: file_input
+      message: "Please provide the file path for the file input:"
+messages:
+  - Tell me your thoughts

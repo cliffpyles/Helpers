@@ -1,0 +1,23 @@
+# prompts.yaml
+context: You are the maintainer of an open source project.
+prompts:
+  - key: file_path
+    type: file
+    kwargs:
+      name: file_path
+      message: "Please enter the file path:"
+      validate: None
+
+  - key: project_name
+    type: text
+    kwargs:
+      name: project_name
+      message: "Please enter the project name:"
+
+  - key: project_description
+    type: text
+    kwargs:
+      name: project_description
+      message: "Please enter a short description of the project:"
+messages:
+  - Write a README.md for this file

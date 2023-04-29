@@ -129,7 +129,7 @@ def main(**kwargs):
     responses = display_prompts(config["prompts"], kwargs)
 
     # Construct the command to reproduce the current context
-    command = "{{blueprint_instance_name}}"
+    command = "document"
     for k, v in responses.items():
         for prompt in config["prompts"]:
             prompt_key = prompt.get('key')

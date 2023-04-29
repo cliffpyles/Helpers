@@ -4,6 +4,11 @@ import json
 import yaml
 import click
 import inquirer
+import openai
+import os
+from pathlib import Path
+
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 def load_config(file_path):
@@ -70,14 +75,26 @@ def generate_options(config):
     return options
 
 
+def chat_with_gpt(message):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "system", "content": "You are a helpful assistant."},
+                  {"role": "user", "content": message}]
+    )
+    return response.choices[0].message['content'].strip()
+
+
 def main(**kwargs):
     file_path = kwargs.pop('file', None) or config_file_path
-    config = load_config(file_path)
+    config = load_config(str(file_path))
     responses = display_prompts(config, kwargs)
-    click.echo(json.dumps(responses, indent=4))
+    chat_message = json.dumps(responses, indent=4)
+    chatgpt_response = chat_with_gpt(chat_message)
+    click.echo(chatgpt_response)
 
-config_file_path = 'prompts.yaml'
-config = load_config(config_file_path)
+script_dir = Path(__file__).resolve(strict=False).parent
+config_file_path = script_dir / './prompts.yaml'
+config = load_config(str(config_file_path))
 options = generate_options(config)
 main = click.Command('main', callback=main, params=options)
 

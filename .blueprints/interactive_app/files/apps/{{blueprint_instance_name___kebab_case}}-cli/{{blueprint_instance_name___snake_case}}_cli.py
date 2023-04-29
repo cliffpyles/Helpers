@@ -48,23 +48,38 @@ def display_prompts(config, arguments):
     return {k: v for k, v in responses.items() if v is not None}
 
 
-def parse_dynamic_args(dynamic_args):
-    arguments = {}
-    for arg in dynamic_args:
-        key, value = arg.lstrip('--').split('=')
-        arguments[key] = value
-    return arguments
+def generate_options(config):
+    options = []
+
+    for prompt in config:
+        prompt_key = prompt.get('key')
+        prompt_type = prompt['type']
+
+        if prompt_key:
+            if prompt_type == 'radio':
+                choices = prompt['kwargs']['choices']
+                option = click.Option(param_decls=[f'--{prompt_key}'],
+                                      type=click.Choice(choices, case_sensitive=False),
+                                      help=f'Pass your {prompt_key} preference as an argument.')
+            else:
+                option = click.Option(param_decls=[f'--{prompt_key}'],
+                                      type=str,
+                                      help=f'Pass your {prompt_key} as an argument.')
+            options.append(option)
+
+    return options
 
 
-@click.command(context_settings=dict(ignore_unknown_options=True,))
-@click.option('-f', '--file', 'file_path', type=click.Path(exists=True), help='Path to the JSON or YAML configuration file.')
-@click.argument('dynamic_args', nargs=-1, type=click.UNPROCESSED)
-def main(file_path, dynamic_args):
+def main(**kwargs):
+    file_path = kwargs.pop('file', None) or config_file_path
     config = load_config(file_path)
-    arguments = parse_dynamic_args(dynamic_args)
-    responses = display_prompts(config, arguments)
+    responses = display_prompts(config, kwargs)
     click.echo(json.dumps(responses, indent=4))
 
+config_file_path = 'prompts.yaml'
+config = load_config(config_file_path)
+options = generate_options(config)
+main = click.Command('main', callback=main, params=options)
 
 if __name__ == '__main__':
     main()

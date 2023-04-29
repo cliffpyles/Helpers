@@ -125,7 +125,7 @@ def download_remote_blueprint(blueprint_name, remote_repository):
         return None
 
 
-def process_blueprint_templates(templates, target_dir, env, variables, force, dry):
+def generate_files_from_templates(templates, target_dir, env, variables, force, dry):
     if not variables:
         variables = {}
 
@@ -154,6 +154,32 @@ def process_blueprint_templates(templates, target_dir, env, variables, force, dr
                 click.echo(f"Generates: {target_path}")
 
 
+def copy_static_files(static_files, blueprint_files_dir, target_dir, env, variables, force, dry):
+    for static_file in static_files:
+        target_name = env.from_string(static_file.replace("___", "|")).render(variables)
+        src_path = blueprint_files_dir / static_file
+        target_path = target_dir / target_name
+            
+        is_file = src_path.is_file()
+        is_existing_file = target_path.is_file()
+        
+        is_copying = (not is_existing_file or force) and is_file
+        is_skipping = is_file and is_existing_file and not force
+
+        if is_copying:
+            if dry:
+                click.echo(f"Copies: {target_path}")
+            else:
+                click.echo(f"Copying: {target_path}")
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src_path, target_path)
+        elif is_skipping:
+            if not dry:
+                click.echo(f"Skipped: '{target_path}' already exists. Use --force to overwrite.")
+            else:
+                click.echo(f"Skips: '{target_path}' already exists. Use --force to overwrite.")        
+
+
 def process_variables(variables_str, metadata):
     variables = {}
 
@@ -177,7 +203,7 @@ def process_variables(variables_str, metadata):
     return variables
 
 
-def generate_files_from_blueprint(blueprint_path, blueprint_instance_name, variables_str, output, force, dry):
+def generate_files_from_blueprint_v1(blueprint_path, blueprint_instance_name, variables_str, output, force, dry):
     blueprint_templates_dir = blueprint_path / "files"
     template_files = glob.glob("**/*.j2", root_dir=blueprint_templates_dir, recursive=True)
     env = get_environment_with_custom_pipes(blueprint_templates_dir)
@@ -187,8 +213,27 @@ def generate_files_from_blueprint(blueprint_path, blueprint_instance_name, varia
         "blueprint_instance_name": blueprint_instance_name
     }
     blueprint_variables = process_variables(variables_str, metadata)
-    process_blueprint_templates(templates, Path(output), env, blueprint_variables, force, dry)
+    generate_files_from_templates(templates, Path(output), env, blueprint_variables, force, dry)
+
+
+def generate_files_from_blueprint(blueprint_path, blueprint_instance_name, variables_str, output, force, dry):
+    blueprint_files_dir = blueprint_path / "files"
+    all_files = glob.glob("**/*", root_dir=blueprint_files_dir, recursive=True)
     
+    # Separate .j2 templates from other files
+    template_files = [f for f in all_files if f.endswith('.j2')]
+    static_files = [f for f in all_files if not f.endswith('.j2')]
+    
+    env = get_environment_with_custom_pipes(blueprint_files_dir)
+    templates = [env.get_template(t) for t in template_files]
+    metadata = {
+        "blueprint_name": blueprint_path.name,
+        "blueprint_instance_name": blueprint_instance_name
+    }
+    blueprint_variables = process_variables(variables_str, metadata)
+    generate_files_from_templates(templates, Path(output), env, blueprint_variables, force, dry)
+    copy_static_files(static_files, blueprint_files_dir, Path(output), env, blueprint_variables, force, dry)
+
 
 def generate_command(blueprint_name, blueprint_instance_name, variables_str, output, force, dry):
     local_path = Path(".blueprints")

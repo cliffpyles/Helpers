@@ -3,6 +3,7 @@
   kwargs:
     name: name
     message: "What's your name?"
+
 - key: color
   type: radio
   kwargs:
@@ -12,3 +13,22 @@
       - Red
       - Blue
       - Green
+
+- key: languages
+  type: checkbox
+  kwargs:
+    name: languages
+    message: "Select the programming languages you know:"
+    choices:
+      - Python
+      - JavaScript
+      - Java
+      - C++
+
+- key: age
+  type: range
+  kwargs:
+    name: age
+    message: "How old are you?"
+    min: 1
+    max: 100

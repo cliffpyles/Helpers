@@ -7,8 +7,25 @@ import inquirer
 import openai
 import os
 from pathlib import Path
+from inquirer.errors import ValidationError
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
+
+class RangeValidator(object):
+    def __init__(self, min_value, max_value):
+        self.min_value = min_value
+        self.max_value = max_value
+
+    def __call__(self, _, value):
+        try:
+            int_value = int(value)
+            if self.min_value <= int_value <= self.max_value:
+                return value
+            else:
+                raise ValidationError("", reason=f"Value must be between {self.min_value} and {self.max_value}")
+        except ValueError:
+            raise ValidationError("", reason="Please enter a valid number")
 
 
 def load_config(file_path):
@@ -30,7 +47,6 @@ def display_prompts(config, arguments):
         kwargs = prompt['kwargs']
 
         if prompt_key and arguments.get(prompt_key) is not None:
-            # Use the value passed as an argument
             continue
 
         if prompt_type == 'text':
@@ -40,9 +56,11 @@ def display_prompts(config, arguments):
         elif prompt_type == 'radio':
             question = inquirer.List(**kwargs)
         elif prompt_type == 'range':
-            question = inquirer.Slider(**kwargs)
-        elif prompt_type == 'autocomplete':
-            question = inquirer.autocomplete.AutoComplete(**kwargs)
+            min_value = kwargs.pop('min', None)
+            max_value = kwargs.pop('max', None)
+            if min_value is not None and max_value is not None:
+                kwargs['validate'] = RangeValidator(min_value, max_value)
+            question = inquirer.Text(**kwargs)
         else:
             raise ValueError(f'Invalid prompt type: {prompt_type}')
 

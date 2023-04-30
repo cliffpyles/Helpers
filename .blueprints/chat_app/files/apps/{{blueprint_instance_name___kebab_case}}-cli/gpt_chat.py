@@ -20,13 +20,9 @@ def chat_with_gpt(config, responses):
             prompt_type = prompt['type']
             response = responses[k]
 
-            if k == prompt_key and prompt_type == 'file' and response.strip() != "":
-                messages.append({"role": "user", "content": f"{k}_path: {v}"})
-                messages.append({"role": "user", "content": f"{k}: {responses[f'{k}_content']}"})
-            elif k == prompt_key:
-                messages.append({"role": "user", "content": f"{k}: {v}"})
+            messages.append({"role": "user", "content": f"{k}: {v}"})
 
-    # Add predefined messages from the configuration
+    # Predefined messages from the configuration
     for message in config["messages"]:
         messages.append({"role": "user", "content": message})
 

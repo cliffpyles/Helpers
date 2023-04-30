@@ -12,8 +12,9 @@ def generate_options(prompts):
     for prompt in prompts:
         prompt_key = prompt.get('key')
         prompt_type = prompt['type']
-        default = prompt.get('default', None)
-        required = prompt.get('required', False)
+        kwargs = prompt.get('kwargs', {})
+        default = kwargs.get('default', None)
+        required = kwargs.get('mandatory', False)
         description = prompt.get('description', None)
 
         if prompt_key:
@@ -22,7 +23,7 @@ def generate_options(prompts):
                 help_text += f' Default: {default}.'
 
             if prompt_type == 'radio':
-                choices = prompt['kwargs']['choices']
+                choices = kwargs.get('choices')
                 option = click.Option(param_decls=[f'--{prompt_key}'],
                                       type=click.Choice(choices, case_sensitive=False),
                                       default=default,

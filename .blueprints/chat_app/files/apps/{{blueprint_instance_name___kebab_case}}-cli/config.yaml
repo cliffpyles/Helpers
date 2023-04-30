@@ -4,20 +4,18 @@ prompts:
   - key: name
     description: Name of the person
     type: text
-    default: Anonymous
-    required: true
     kwargs:
-      name: name
       message: "What's your name?"
+      default: Anonymous
+      mandatory: true
 
   - key: favorite_color
     description: Favorite color of the person
     type: radio
-    default: Blue
-    required: true
     kwargs:
-      name: favorite_color
       message: "Choose a color:"
+      default: Blue
+      mandatory: true
       choices:
         - Red
         - Blue
@@ -27,7 +25,6 @@ prompts:
     type: checkbox
     description: Languages the person knows
     kwargs:
-      name: languages
       message: "Select the programming languages you know:"
       choices:
         - Python
@@ -39,16 +36,14 @@ prompts:
     type: range
     description: Age of the person
     kwargs:
-      name: age
       message: "How old are you?"
-      min: 1
-      max: 100
+      min_allowed: 1
+      max_allowed: 100
 
   - key: bio
     type: file
     description: Filepath to a bio about the person
     kwargs:
-      name: bio
       message: "Please provide the file path for the bio:"
 
 messages:

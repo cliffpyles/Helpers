@@ -16,8 +16,7 @@ def construct_command(config: Dict, responses: Dict) -> str:
         for prompt in config["prompts"]:
             prompt_key = prompt.get('key')
             prompt_type = prompt['type']
-            if k == prompt_key and prompt_type != 'file':
+            if k == prompt_key:
                 command += f" --{k} \"{v}\""
-            elif k == prompt_key and prompt_type == 'file':
-                command += f" --{k} \"{v}\""
+
     return command

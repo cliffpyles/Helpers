@@ -1,5 +1,6 @@
 import sys
 from typing import Dict
+from pathlib import Path
 
 def construct_command(config: Dict, responses: Dict) -> str:
     """
@@ -11,12 +12,11 @@ def construct_command(config: Dict, responses: Dict) -> str:
     """
 
     # Construct a command to reproduce the current context
-    command = " ".join(sys.argv)
+    command_filepath = " ".join(sys.argv)
+    command = Path(command_filepath).name
+
     for k, v in responses.items():
-        for prompt in config["prompts"]:
-            prompt_key = prompt.get('key')
-            prompt_type = prompt['type']
-            if k == prompt_key:
-                command += f" --{k} \"{v}\""
+        if k in config["prompts"]:
+            command += f" --{k} \"{v}\""
 
     return command

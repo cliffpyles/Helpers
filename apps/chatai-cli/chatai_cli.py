@@ -9,9 +9,31 @@ from tempfile import NamedTemporaryFile
 import webbrowser
 import uuid
 
+
 VALID_ASK_MODELS = ["gpt-3.5-turbo", "gpt-4"]
 VALID_CONVERSATION_MODELS = ["gpt-3.5-turbo", "gpt-4"]
 
+script_dir = Path(__file__).resolve(strict=False).parent
+
+SOFTWARE_DEVELOPER_PROMPT = script_dir / "./prompts/software-developer.txt"
+IT_ARCHITECT_PROMPT = script_dir / "./prompts/it-architect.txt"
+DATA_SCIENTIST_PROMPT = script_dir / "./prompts/data-scientist.txt"
+FRONTEND_DEVELOPER_PROMPT = script_dir / "./prompts/frontend-developer.txt"
+CYBER_SECURITY_PROMPT = script_dir / "./prompts/cyber-security-specialist.txt"
+QUALITY_ASSURANCE_PROMPT  = script_dir / "./prompts/quality-assurance.txt"
+
+prompts = {
+    "default": "You are a helpful assistant.",
+    "architect": IT_ARCHITECT_PROMPT.read_text(),
+    "developer": SOFTWARE_DEVELOPER_PROMPT.read_text(),
+    "frontend": FRONTEND_DEVELOPER_PROMPT.read_text(),
+    "qa": QUALITY_ASSURANCE_PROMPT.read_text(),
+    "scientist": DATA_SCIENTIST_PROMPT.read_text(),
+    "security": CYBER_SECURITY_PROMPT.read_text(),
+}
+
+def bold_text(text):
+    return "\033[1m" + text + "\033[0m"
 
 def clear_screen():
     os.system('clear') if os.name == 'posix' else os.system('cls')
@@ -44,8 +66,11 @@ def create_message(role, content, name=None):
     return message
 
 
-def create_system_message():
-    return create_message("system", "You are a helpful assistant.")
+def create_system_message(prompt = "default"):
+    if prompt in prompts:
+        return create_message("system", prompts[prompt])
+    else:
+        return create_message("system", prompts["default"])
 
 
 def create_user_message(username, content):
@@ -55,17 +80,17 @@ def create_user_message(username, content):
 def ask_command(args):
     user_input = args.user_input
     model = args.model
+    prompt = args.prompt
     openai.api_key = os.environ["OPENAI_API_KEY"]
     username, mac_address = get_user_information()
     file_input = Path(user_input)
 
     content = file_input.read_text() if file_input.is_file() else user_input
 
-
     response = openai.ChatCompletion.create(
         model=model,
         messages=[
-            create_system_message(),
+            create_system_message(prompt),
             create_user_message(username, content)
         ],
         user=f"{mac_address}::{username}"
@@ -88,7 +113,8 @@ def create_conversation_completion(user_message, model, previous_messages):
             message_without_id["name"] = message["name"]
         messages_without_id.append(message_without_id)
 
-    messages = [create_system_message()] + messages_without_id
+    # messages = [create_system_message()] + messages_without_id
+    messages = messages_without_id
     response = openai.ChatCompletion.create(
         model=model,
         messages=messages,
@@ -120,7 +146,7 @@ def delete_command(args):
             print(f"\nError deleting conversation file: {e}\n")
 
 
-def open_conversation(conversation_name, model):
+def open_conversation(conversation_name, model, prompt):
     conversation_dir = Path.home() / ".chatai/conversations"
     conversation_dir.mkdir(parents=True, exist_ok=True)
     conversation_file = get_conversation_file_path(conversation_name, model)
@@ -128,12 +154,16 @@ def open_conversation(conversation_name, model):
 
     if conversation_file.is_file():
         file_content = json.loads(conversation_file.read_text())
-        conversation = conversation + file_content
+        conversation = file_content
         print(f"\nConversation file opened: {conversation_file}\n")
     else:
+        file_content = create_system_message(prompt)
+        file_content["id"] = str(uuid.uuid4())
+        conversation = [file_content]
         conversation_file.touch()
-        conversation_file.write_text("[]")
+        conversation_file.write_text(json.dumps(conversation))
         print(f"\nConversation file created: {conversation_file}\n")
+        view_message(file_content)
 
     return conversation, conversation_file
 
@@ -141,12 +171,15 @@ def open_conversation(conversation_name, model):
 def view_message(message):
     
     if message["role"] == "user":
-        print(f"\n> {message['name']} ({message['id']}):\n")
-        print(f"\n{message['content']}\n")
+        label = bold_text(f"{message['name']} ({message['id']}):")
+        print(f"\n{label}:\n\n{message['content']}\n")
+    elif message["role"] == "system":
+        label = bold_text("System:")
+        print(f"\n{label}\n\n{message['content']}\n")
     else:
-        print(f"\n> {message['role']} ({message['id']}):\n")
-        print(f"\n{message['content']}\n")
-        print(f"\n-----\n\n")
+        label = bold_text(f"Response ({message['id']}):")
+        print(f"\n{label}\n\n{message['content']}\n")
+        
 
 
 def conversation_command(args):
@@ -154,17 +187,16 @@ def conversation_command(args):
     print("\nEntering an interactive conversation. \n\nType 'exit' to end the conversation.\n")
     conversation_name = args.conversation_name
     model = args.model
+    prompt = args.prompt
     username, _ = get_user_information()
-    conversation, conversation_file = open_conversation(conversation_name, model)
-
-    print("\n-----\n")
+    conversation, conversation_file = open_conversation(conversation_name, model, prompt)
 
     for message in conversation:
         view_message(message)
 
 
     while True:
-        user_input = input("Message: ")
+        user_input = input(bold_text("Message: "))
 
         if user_input.lower() == "exit":
             break
@@ -270,10 +302,12 @@ def configure_subparsers(subparsers):
     ask_parser = subparsers.add_parser("ask", help="Ask a general question.")
     ask_parser.add_argument("user_input", type=str, help="User input to send the API.")
     ask_parser.add_argument("-m", "--model", type=str, default=VALID_ASK_MODELS[0], choices=VALID_ASK_MODELS, help=f"Language model to use. Valid models: {', '.join(VALID_ASK_MODELS)}")
+    ask_parser.add_argument("-p", "--prompt", type=str, default="default", help="Name of a preconfigured prompt to use")
 
     conversation_parser = subparsers.add_parser("conversation", help="Start an interactive conversation.")
     conversation_parser.add_argument("conversation_name", type=str, help="Name of the conversation.")
     conversation_parser.add_argument("-m", "--model", type=str, default=VALID_CONVERSATION_MODELS[0], choices=VALID_CONVERSATION_MODELS, help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}")
+    conversation_parser.add_argument("-p", "--prompt", type=str, default="default", help="Name of a preconfigured prompt to use")
 
     delete_parser = subparsers.add_parser("delete", help="Delete a conversation.")
     delete_parser.add_argument("conversation_name", type=str, help="Name of the conversation to delete.")

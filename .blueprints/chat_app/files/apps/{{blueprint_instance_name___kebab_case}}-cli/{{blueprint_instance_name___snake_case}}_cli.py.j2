@@ -9,10 +9,13 @@ import os
 from pathlib import Path
 from inquirer.errors import ValidationError
 
+# Set the OpenAI API key
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 class RangeValidator(object):
+    """Validator class for ensuring user input is within a specified range."""
+
     def __init__(self, min_value, max_value):
         self.min_value = min_value
         self.max_value = max_value
@@ -29,12 +32,14 @@ class RangeValidator(object):
 
 
 def read_file(file_path):
+    """Read the content of a file."""
     with open(file_path, 'r') as file:
         content = file.read()
     return content
 
 
 def load_config(file_path):
+    """Load configuration from a JSON or YAML file."""
     with open(file_path, 'r') as config_file:
         if file_path.endswith('.json'):
             return json.load(config_file)
@@ -45,6 +50,7 @@ def load_config(file_path):
 
 
 def display_prompts(prompts, arguments):
+    """Display prompts to the user and store their responses."""
     questions = []
 
     for prompt in prompts:
@@ -89,6 +95,7 @@ def display_prompts(prompts, arguments):
 
 
 def generate_options(prompts):
+    """Create Click options for command line arguments."""
     options = []
 
     for prompt in prompts:
@@ -115,6 +122,7 @@ def generate_options(prompts):
 
 
 def chat_with_gpt(message):
+    """Interact with the GPT-3.5-turbo model."""
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "system", "content": "You are a helpful assistant."},
@@ -124,11 +132,15 @@ def chat_with_gpt(message):
 
 
 def main(**kwargs):
+    """Main function for executing the script."""
+    # Load configuration
     file_path = kwargs.pop('file', None) or config_file_path
     config = load_config(str(file_path))
+
+    # Display prompts to the user and collect their responses
     responses = display_prompts(config["prompts"], kwargs)
 
-    # Construct the command to reproduce the current context
+    # Construct a command to reproduce the current context
     command = "{{blueprint_instance_name}}"
     for k, v in responses.items():
         for prompt in config["prompts"]:
@@ -153,6 +165,7 @@ def main(**kwargs):
             elif k == prompt_key:
                 messages.append({"role": "user", "content": f"{k}: {v}"})
 
+    # Add predefined messages from the configuration
     for message in config["messages"]:
         messages.append({"role": "user", "content": message})
 
@@ -168,11 +181,19 @@ def main(**kwargs):
     click.echo(command)
     click.echo("\n")
 
+# Set the script directory and configuration file path
 script_dir = Path(__file__).resolve(strict=False).parent
 config_file_path = script_dir / './prompts.yaml'
+
+# Load the configuration
 config = load_config(str(config_file_path))
+
+# Generate command line options using the configuration
 options = generate_options(config["prompts"])
+
+# Create a Click command with the main function and options
 main = click.Command('main', callback=main, params=options)
 
+# Execute the main function when the script is run
 if __name__ == '__main__':
     main()

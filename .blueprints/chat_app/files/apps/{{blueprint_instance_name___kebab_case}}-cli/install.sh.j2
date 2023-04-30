@@ -24,7 +24,7 @@ if [ ! -d "$HOME_DIR/bin" ]; then
 fi
 
 # create symlinks to the script in the user scripts directory
-ln -s "$SCRIPT_DIR/{{blueprint_instance_name | snake_case }}_cli.py" "$HOME_DIR/bin/{{blueprint_instance_name | kebab_case }}"
+ln -s "$SCRIPT_DIR/main.py" "$HOME_DIR/bin/{{blueprint_instance_name | kebab_case }}"
 
 # add the user scripts directory to the PATH
 if ! grep -q "$HOME_DIR/bin" "$HOME_DIR/.bashrc"; then

@@ -1,4 +1,5 @@
 context: You are a helpful assistant.
+
 prompts:
   - key: name
     type: text
@@ -40,5 +41,6 @@ prompts:
     kwargs:
       name: file_input
       message: "Please provide the file path for the file input:"
+
 messages:
-  - Tell me your thoughts
+  - Show me the information I sent you

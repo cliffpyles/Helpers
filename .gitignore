@@ -229,3 +229,5 @@ poetry.toml
 
 hello-cli/
 temp_file.js
+output.wav
+response.mp3

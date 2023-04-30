@@ -18,7 +18,9 @@ def chat_with_gpt(config, responses):
         for prompt in config["prompts"]:
             prompt_key = prompt.get('key')
             prompt_type = prompt['type']
-            if k == prompt_key and prompt_type == 'file':
+            response = responses[k]
+
+            if k == prompt_key and prompt_type == 'file' and response.strip() != "":
                 messages.append({"role": "user", "content": f"{k}_path: {v}"})
                 messages.append({"role": "user", "content": f"{k}: {responses[f'{k}_content']}"})
             elif k == prompt_key:

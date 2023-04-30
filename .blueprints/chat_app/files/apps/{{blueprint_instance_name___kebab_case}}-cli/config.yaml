@@ -2,15 +2,21 @@ context: You are a helpful assistant.
 
 prompts:
   - key: name
+    description: Name of the person
     type: text
+    default: Anonymous
+    required: true
     kwargs:
       name: name
       message: "What's your name?"
 
-  - key: color
+  - key: favorite_color
+    description: Favorite color of the person
     type: radio
+    default: Blue
+    required: true
     kwargs:
-      name: color
+      name: favorite_color
       message: "Choose a color:"
       choices:
         - Red
@@ -19,6 +25,7 @@ prompts:
 
   - key: languages
     type: checkbox
+    description: Languages the person knows
     kwargs:
       name: languages
       message: "Select the programming languages you know:"
@@ -30,17 +37,19 @@ prompts:
 
   - key: age
     type: range
+    description: Age of the person
     kwargs:
       name: age
       message: "How old are you?"
       min: 1
       max: 100
 
-  - key: file_input
+  - key: bio
     type: file
+    description: Filepath to a bio about the person
     kwargs:
-      name: file_input
-      message: "Please provide the file path for the file input:"
+      name: bio
+      message: "Please provide the file path for the bio:"
 
 messages:
   - Show me the information I sent you

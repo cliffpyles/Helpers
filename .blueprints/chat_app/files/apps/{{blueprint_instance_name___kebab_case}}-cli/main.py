@@ -19,14 +19,15 @@ def main(**kwargs):
     # Display prompts to the user and collect their responses
     responses = display_prompts(config["prompts"], kwargs)
 
-    # Send messages to ChatGPT and display the response
-    chatgpt_response = chat_with_gpt(config, responses)
-    click.echo(chatgpt_response)
-
     # Show the command to reproduce this interaction
     command = construct_command(config, responses)
-    click.echo("\nCommand:")
+    click.secho(f"\nCommand:\n", bold=True)
     click.echo(command)
+
+    # Send messages to ChatGPT and display the response
+    chatgpt_response = chat_with_gpt(config, responses)
+    click.secho("\nResponse:\n", bold=True)
+    click.echo(chatgpt_response)    
     click.echo("\n")
 
 # Set the script directory and configuration file path

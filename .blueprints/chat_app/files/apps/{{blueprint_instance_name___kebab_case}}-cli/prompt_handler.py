@@ -39,9 +39,14 @@ def display_prompts(prompts, arguments):
         prompt_key = prompt.get('key')
         prompt_type = prompt['type']
         kwargs = prompt['kwargs']
+        required = prompt.get('required', False)
+        default = prompt.get('default', None)
 
-        if prompt_key and arguments.get(prompt_key) is not None:
+        if not required and prompt_key and arguments.get(prompt_key) is not None:
             continue
+        
+        if default is not None:
+            kwargs['default'] = default
 
         if prompt_type == 'text':
             question = inquirer.Text(**kwargs)
@@ -69,7 +74,9 @@ def display_prompts(prompts, arguments):
     for prompt in prompts:
         prompt_key = prompt.get('key')
         prompt_type = prompt['type']
-        if prompt_type == 'file' and responses.get(prompt_key) is not None:
+        response = responses.get(prompt_key)
+
+        if prompt_type == 'file' and response is not None and response.strip() != '':
             file_path = responses[prompt_key]
             responses[f"{prompt_key}_content"] = read_file(file_path)
 

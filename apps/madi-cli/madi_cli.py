@@ -16,9 +16,9 @@ CHUNK = 1024
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 16000
-RECORD_SECONDS = 10
+RECORD_SECONDS = 5
 WAVE_OUTPUT_FILENAME = "output.wav"
-SYSTEM_MESSAGE = "I want you to act as a text based adventure game. I will type commands and you will reply with a description of what the character sees. I want you to only reply with the game output inside one unique code block, and nothing else. do not write explanations. do not type commands unless I instruct you to do so. when i need to tell you something in english, i will do so by putting text inside curly brackets {like this}. my first command is wake up"
+SYSTEM_MESSAGE = "I want you to act as a text based adventure game. I will give commands and you will reply with a description of what the character sees. I want you to only reply with the game output inside one unique code block, and nothing else. do not write explanations. do not type commands unless I instruct you to do so. at the start of each game, find out how many players are playing and give each of them a character. at the start of each game you should ask what type of adventure we want go on, and you should give examples. Make the game appropriate for a 9 year old. Make sure there is comedy in every game."
 
 # Initialize PyAudio
 p = pyaudio.PyAudio()
@@ -90,8 +90,11 @@ if __name__ == "__main__":
             {"role": "system", "content": SYSTEM_MESSAGE},
         ]
 
-        print("Assistant: Welcome to the role-playing game! I am your game master. Please describe your character and begin your adventure.")
-        play_audio("Welcome to the role-playing game! I am your game master. Please describe your character and begin your adventure.")
+        print("Assistant: Welcome to the role-playing game! I am your game master.")
+        play_audio("Welcome to the role-playing game! I am your game master.")
+        response = generate_response("Let's get started.", messages)
+        print(f"Assistant: {response}")
+        play_audio(response)
 
         while True:
             record_audio()

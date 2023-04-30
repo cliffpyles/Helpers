@@ -1,0 +1,20 @@
+settings:
+  theme: fantasy
+  game_details: traditional text-based adventure game
+  game_type: single-player
+welcome_message: "Welcome to the role-playing game! I am your game master."
+initial_system_message: >-
+  I want you to act as a text based adventure game. I will give you commands
+  and you will reply with a description of what the character sees. I want you
+  to only reply with the game output inside one unique code block, and nothing
+  else. Do not write explanations. Do not type commands unless I instruct you
+  to do so. When I need to tell you something in English, I will do so by
+  prepending the text with the words 'game master'. My first command is wake up
+game_messages:
+  game_in_progress: "There is already a game in progress."
+  no_game_in_progress: "No game is currently in progress."
+  game_stopped: "The game has been stopped."
+  start_game: "Starting a new game with the specified settings."
+  stop_game: "Please stop the current game first."
+  load_game: "Loading a game with the specified settings."
+  send_game_commands: "Please start a game before sending game commands."

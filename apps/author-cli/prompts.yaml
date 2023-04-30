@@ -1,0 +1,60 @@
+context: You are a professional writer.
+prompts:
+  - key: text
+    type: text
+    kwargs:
+      name: text
+      message: "What's the text?"
+  - key: preferred_tones
+    type: checkbox
+    kwargs:
+      name: preferred_tones
+      message: "Select the tones that you would prefer to communicate"
+      choices:
+        - Amused
+        - Angry
+        - Anxious
+        - Bored
+        - Concise
+        - Confident
+        - Confused
+        - Content
+        - Enthusiastic
+        - Excited
+        - Friendly
+        - Frustrated
+        - Grateful
+        - Happy
+        - Hopeful
+        - Insecure
+        - Jealous
+        - Nervous
+        - Objective
+        - Optimistic
+        - Peaceful
+        - Reflective
+        - Sad
+        - Serious
+        - Surprised
+messages:
+  - Create a report on the text.
+  - Show me the original text in the report. Call it original text.
+  - Tell me the current tones of the text in the report. Call it current tones.
+  - Add a list of translations for the text to the report. Make one translation for each of my preferred tones. Call it translations.
+  - Add notes about any grammatical errors or areas for improvement in the report. Call it improvement.
+  - Use the format >
+
+    {header}
+    
+    {original text}
+    
+    {current tones}
+    
+    {translations}
+    
+    {improvement}
+
+    {ending horizontal line}
+  - Use unicode characters in the report to improve readability.
+  - Make sure there is ample whitespace around the sections of the report.
+  - Show me the report.

@@ -89,6 +89,12 @@ def create_user_message(username, content):
     return create_message("user", content, name=username)
 
 
+def send_chat(**kwargs):
+    response = openai.ChatCompletion.create(**kwargs)
+
+    return response["choices"][0]["message"]
+
+
 def send_chat_message(user_message, model, messages):
     openai.api_key = os.environ["OPENAI_API_KEY"]
     username, mac_address = get_user_information()
@@ -108,13 +114,13 @@ def send_chat_message(user_message, model, messages):
         messages_without_id.append(message_without_id)
 
     messages = messages_without_id
-    response = openai.ChatCompletion.create(
+    response_message = send_chat(
         model=model,
         messages=messages,
         user=f"{mac_address}::{username}"
     )
 
-    return response
+    return response_message
 
 
 def open_conversation(conversation_name, model, messages):
@@ -126,10 +132,9 @@ def open_conversation(conversation_name, model, messages):
     if conversation_file.is_file():
         file_content = json.loads(conversation_file.read_text())
         conversation = file_content
-        print(f"\nConversation file opened: {conversation_file}\n")
+        click.secho("Conversation file opened:", nl=False, bold=True)
+        click.echo(conversation_file)
     else:
-        # file_content = create_system_message(prompt)
-        # file_content["id"] = str(uuid.uuid4())
         conversation = []
         for message in messages:
             message["id"] = str(uuid.uuid4())
@@ -137,27 +142,29 @@ def open_conversation(conversation_name, model, messages):
 
         conversation_file.touch()
         conversation_file.write_text(json.dumps(conversation))
-        print(f"\nConversation file created: {conversation_file}\n")
-        # view_message(file_content)
+        click.secho("Conversation file created:", nl=False, bold=True)
+        click.echo(conversation_file)
 
     return conversation, conversation_file
 
 
 def view_message(message):
     if message["role"] == "user":
-        label = bold_text(f"User ({message['id']}):")
-        print(f"\n{label}:\n\n{message['content']}\n")
+        message_id = message.get('id', 'None')
+        click.secho(f"User ({message_id}):", bold=True)
+        click.echo(f"{message['content']}")
     elif message["role"] == "system":
-        label = bold_text("System:")
-        print(f"\n{label}\n\n{message['content']}\n")
+        click.secho("System:", bold=True)
+        click.echo(f"{message['content']}")
     else:
-        label = bold_text(f"Response ({message['id']}):")
-        print(f"\n{label}\n\n{message['content']}\n")
-        
+        message_id = message.get('id', 'None')
+        click.secho(f"Response ({message_id}):", bold=True)
+        click.echo(f"{message['content']}")
 
-def view_choice(choice):
-    print("\nChatGPT Response:\n")
-    print(choice["message"]["content"])
+
+def view_messages(messages):
+    for message in messages:
+        view_message(message)
 
 
 def ask_command(user_input, model, prompt):
@@ -170,18 +177,20 @@ def ask_command(user_input, model, prompt):
     if user_input:
         messages.append(create_user_message(username, user_input))
 
-    response = openai.ChatCompletion.create(
+    response_message = send_chat(
         model=model,
         messages=messages,
         user=f"{mac_address}::{username}"
     )
 
-    view_choice(response["choices"][0])
+    view_messages(messages + [response_message])
 
 
 def conversation_command(conversation_name, model, prompt):
-    clear_screen()
-    print("\nEntering an interactive conversation. \n\nType 'exit' to end the conversation.\n")
+    click.clear()
+
+    click.echo("Entering an interactive conversation.")
+    click.echo("Type 'exit' to end the conversation.")
     prompt = load_prompt(prompt)
     conversation_name = conversation_name
     model = model or prompt["model"]
@@ -189,21 +198,17 @@ def conversation_command(conversation_name, model, prompt):
     conversation, conversation_file = open_conversation(conversation_name, model, prompt["messages"])
 
     if conversation[-1]["role"] != "assistant":
-        response = send_chat_message(None, model, conversation)
-        choice = response["choices"][0]
+        response_message = send_chat_message(None, model, conversation)
         assistant_message_id = str(uuid.uuid4())
-        assistant_message = choice["message"].to_dict_recursive()
+        assistant_message = response_message.to_dict_recursive()
         assistant_message["id"] = assistant_message_id
         conversation.append(assistant_message)
         conversation_file.write_text(json.dumps(conversation, indent=2))
 
-
-    for message in conversation:
-        view_message(message)
-
+    view_messages(conversation)
 
     while True:
-        user_input = input(bold_text("Message: "))
+        user_input = click.prompt(click.style("Message", bold=True))
 
         if user_input.lower() == "exit":
             break
@@ -216,10 +221,9 @@ def conversation_command(conversation_name, model, prompt):
                 "name": username,
                 "content": f"{user_input}",
             }
-            response = send_chat_message(user_message, model, conversation)
-            choice = response["choices"][0]
+            response_message = send_chat_message(user_message, model, conversation)
             assistant_message_id = str(uuid.uuid4())
-            assistant_message = choice["message"].to_dict_recursive()
+            assistant_message = response_message.to_dict_recursive()
             assistant_message["id"] = assistant_message_id
             conversation.append(user_message)
             conversation.append(assistant_message)
@@ -227,7 +231,7 @@ def conversation_command(conversation_name, model, prompt):
             view_message(assistant_message)
 
         except Exception as e:
-            print(f"Error: {e}")
+            click.echo(f"Error: {e}")
 
 
 def delete_command(conversation_name, model, force):
@@ -236,19 +240,19 @@ def delete_command(conversation_name, model, force):
     conversation_file = get_conversation_file_path(conversation_name, model)
 
     if not conversation_file.is_file():
-        print(f"\nConversation file not found: {conversation_file}\n")
+        click.echo(f"Conversation file not found: {conversation_file}")
     else:
         if not force:
-            confirmation = input(f"\nAre you sure you want to delete the conversation '{conversation_name}' with model '{model}'? (y/n): ").lower()
+            confirmation = click.confirm(f"Are you sure you want to delete the conversation '{conversation_name}' with model '{model}'?:").lower()
             if confirmation != "y":
-                print("\nDeletion canceled.\n")
+                click.echo("Deletion canceled.")
                 return
 
         try:
             conversation_file.unlink()
-            print(f"\nConversation file deleted: {conversation_file}\n")
+            click.echo(f"Conversation file deleted: {conversation_file}")
         except Exception as e:
-            print(f"\nError deleting conversation file: {e}\n")
+            click.echo(f"Error deleting conversation file: {e}")
 
 
 def list_command():
@@ -261,11 +265,11 @@ def list_command():
         conversations.append({"name": conversation_name, "model": model})
 
     if not conversations:
-        print("\nNo existing conversations found.\n")
+        click.echo("No existing conversations found.")
     else:
-        print("Existing conversations:")
+        click.echo("Existing conversations:")
         for conversation in conversations:
-            print(f"\nName: {conversation['name']} | Model: {conversation['model']}\n")
+            click.echo(f"Name: {conversation['name']} | Model: {conversation['model']}")
 
 
 def draw_command(image_description, browser, size):
@@ -278,7 +282,7 @@ def draw_command(image_description, browser, size):
     )
     image_url = response['data'][0]['url']
 
-    print(f"Preview: {image_url}")
+    click.echo(f"Preview: {image_url}")
 
     if browser:
         webbrowser.open_new_tab(image_url)
@@ -290,9 +294,9 @@ def models_command():
     models = [model["id"] for model in response["data"]]
     models.sort()
 
-    print("\nAvailable Models:\n")
+    click.echo("Available Models:")
     for model in models:
-        print(f"{model}")
+        click.echo(f"{model}")
 
 
 def fork_command(source_conversation_name, new_conversation_name, model):
@@ -300,19 +304,19 @@ def fork_command(source_conversation_name, new_conversation_name, model):
     new_conversation_file = get_conversation_file_path(new_conversation_name, model)
 
     if not source_conversation_file.is_file():
-        print(f"\nSource conversation file not found: {source_conversation_file}\n")
+        click.echo(f"Source conversation file not found: {source_conversation_file}")
         return
 
     if new_conversation_file.is_file():
-        print(f"\nNew conversation file already exists: {new_conversation_file}\n")
+        click.echo(f"New conversation file already exists: {new_conversation_file}")
         return
 
     try:
         source_conversation = json.loads(source_conversation_file.read_text())
         new_conversation_file.write_text(json.dumps(source_conversation, indent=2))
-        print(f"\nForked conversation '{source_conversation_name}' to '{new_conversation_name}' with model '{model}'\n")
+        click.echo(f"Forked conversation '{source_conversation_name}' to '{new_conversation_name}' with model '{model}'")
     except Exception as e:
-        print(f"\nError forking conversation: {e}\n")
+        click.echo(f"Error forking conversation: {e}")
 
 
 def send_command(filepath, model, prompt):
@@ -326,13 +330,13 @@ def send_command(filepath, model, prompt):
 
     messages.append(create_user_message(username, content))
 
-    response = openai.ChatCompletion.create(
+    response_message = send_chat(
         model=model,
         messages=messages,
         user=f"{mac_address}::{username}"
     )
 
-    view_choice(response["choices"][0])
+    view_message(response_message)
 
 
 @click.group()

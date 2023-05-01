@@ -54,6 +54,21 @@ def clear_screen():
     os.system('clear') if os.name == 'posix' else os.system('cls')
 
 
+def clear_chat_history(conversation_file):
+    try:
+        conversation_file.write_text("[]")
+        click.echo("Chat history cleared.")
+    except Exception as e:
+        click.echo(f"Error clearing chat history: {e}")
+
+
+def execute_command(command, conversation_file):
+    if command.lower() == "clear":
+        clear_chat_history(conversation_file)
+    else:
+        click.echo(f"Unrecognized command: {command}")
+
+
 def get_conversation_file_path(conversation_name, model):
     conversation_dir = Path.home() / ".chatai/conversations"
     conversation_file = conversation_dir / f"{conversation_name}__{model}.json"
@@ -212,8 +227,15 @@ def conversation_command(conversation_name, model, prompt):
     while True:
         user_input = click.prompt(click.style("Message", bold=True))
 
-        if user_input.lower() == "exit":
+        # Exit the conversation if the user types "/exit"
+        if user_input.lower() == "/exit":
             break
+
+        # Execute the command if the input starts with a '/'
+        if user_input.startswith("/"):
+            command = user_input[1:]
+            execute_command(command, conversation_file)
+            continue
 
         try:
             user_message_id = str(uuid.uuid4())

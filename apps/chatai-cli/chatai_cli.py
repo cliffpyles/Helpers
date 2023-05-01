@@ -14,6 +14,7 @@ script_dir = Path(__file__).resolve(strict=False).parent
 
 VALID_ASK_MODELS = ["gpt-3.5-turbo", "gpt-4"]
 VALID_CONVERSATION_MODELS = ["gpt-3.5-turbo", "gpt-4"]
+VALID_SEND_MODELS = ["gpt-3.5-turbo", "gpt-4"]
 PROMPTS_DIR = "./prompts"
 
 def load_prompt(prop_name = "default"):
@@ -164,12 +165,10 @@ def ask_command(user_input, model, prompt):
     model = model or prompt["model"]
     openai.api_key = os.environ["OPENAI_API_KEY"]
     username, mac_address = get_user_information()
-    file_input = Path(user_input)
-    content = file_input.read_text() if file_input.is_file() else user_input
     messages = prompt["messages"]
-    
-    if user_input.strip().lower() in ["", "none", "help"]:
-        messages.append(create_user_message(username, content))
+
+    if user_input:
+        messages.append(create_user_message(username, user_input))
 
     response = openai.ChatCompletion.create(
         model=model,
@@ -315,6 +314,27 @@ def fork_command(source_conversation_name, new_conversation_name, model):
     except Exception as e:
         print(f"\nError forking conversation: {e}\n")
 
+
+def send_command(filepath, model, prompt):
+    prompt = load_prompt(prompt)
+    model = model or prompt["model"]
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+    username, mac_address = get_user_information()
+    file_input = Path(filepath)
+    content = file_input.read_text()
+    messages = prompt["messages"]
+
+    messages.append(create_user_message(username, content))
+
+    response = openai.ChatCompletion.create(
+        model=model,
+        messages=messages,
+        user=f"{mac_address}::{username}"
+    )
+
+    view_choice(response["choices"][0])
+
+
 @click.group()
 def main():
     """
@@ -324,7 +344,7 @@ def main():
 
 
 @main.command()
-@click.argument("user_input", type=str)
+@click.argument("user_input", type=str, required=False)
 @click.option("-m", "--model", type=click.Choice(VALID_ASK_MODELS), help=f"Language model to use. Valid models: {', '.join(VALID_ASK_MODELS)}")
 @click.option("-p", "--prompt", type=str, default="default", help="Name of a preconfigured prompt to use")
 def ask(user_input, model, prompt):
@@ -371,6 +391,14 @@ def list():
 @main.command()
 def models():
     models_command()
+
+
+@main.command()
+@click.argument("filepath", type=str)
+@click.option("-m", "--model", type=click.Choice(VALID_SEND_MODELS), help=f"Language model to use. Valid models: {', '.join(VALID_SEND_MODELS)}")
+@click.option("-p", "--prompt", type=str, default="default", help="Name of a preconfigured prompt to use")
+def send(filepath, model, prompt):
+    send_command(filepath, model, prompt)
 
 
 if __name__ == "__main__":

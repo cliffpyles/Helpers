@@ -8,32 +8,43 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 import webbrowser
 import uuid
-
-
-VALID_ASK_MODELS = ["gpt-3.5-turbo", "gpt-4"]
-VALID_CONVERSATION_MODELS = ["gpt-3.5-turbo", "gpt-4"]
+import yaml
 
 script_dir = Path(__file__).resolve(strict=False).parent
 
-SOFTWARE_DEVELOPER_PROMPT = script_dir / "./prompts/software-developer.txt"
-IT_ARCHITECT_PROMPT = script_dir / "./prompts/it-architect.txt"
-DATA_SCIENTIST_PROMPT = script_dir / "./prompts/data-scientist.txt"
-FRONTEND_DEVELOPER_PROMPT = script_dir / "./prompts/frontend-developer.txt"
-CYBER_SECURITY_PROMPT = script_dir / "./prompts/cyber-security-specialist.txt"
-QUALITY_ASSURANCE_PROMPT  = script_dir / "./prompts/quality-assurance.txt"
+VALID_ASK_MODELS = ["gpt-3.5-turbo", "gpt-4"]
+VALID_CONVERSATION_MODELS = ["gpt-3.5-turbo", "gpt-4"]
+PROMPTS_DIR = "./prompts"
 
-prompts = {
-    "default": "You are a helpful assistant.",
-    "architect": IT_ARCHITECT_PROMPT.read_text(),
-    "developer": SOFTWARE_DEVELOPER_PROMPT.read_text(),
-    "frontend": FRONTEND_DEVELOPER_PROMPT.read_text(),
-    "qa": QUALITY_ASSURANCE_PROMPT.read_text(),
-    "scientist": DATA_SCIENTIST_PROMPT.read_text(),
-    "security": CYBER_SECURITY_PROMPT.read_text(),
-}
+def load_prompt(prop_name = "default"):
+    prompt_configs = [yaml.safe_load(prompt.read_text()) for prompt in script_dir.glob("./prompts/*.yaml")]
+    prompts = {}
+    cleaned_promp_name = prop_name\
+        .strip()\
+        .replace('-','')\
+        .replace('_','')\
+        .replace(' ','')\
+        .lower()
+    for prompt_config in prompt_configs:
+        keys = prompt_config.get("keys")
+        model = prompt_config.get("model")
+        messages = prompt_config.get("messages")
+
+        for key in keys:
+            prompts[key] = {
+                "model": model,
+                "messages": messages
+            }
+
+    if cleaned_promp_name in prompts:
+        return prompts[cleaned_promp_name]
+    else:
+        return prompts["default"]
+
 
 def bold_text(text):
     return "\033[1m" + text + "\033[0m"
+
 
 def clear_screen():
     os.system('clear') if os.name == 'posix' else os.system('cls')
@@ -77,34 +88,16 @@ def create_user_message(username, content):
     return create_message("user", content, name=username)
 
 
-def ask_command(args):
-    user_input = args.user_input
-    model = args.model
-    prompt = args.prompt
-    openai.api_key = os.environ["OPENAI_API_KEY"]
-    username, mac_address = get_user_information()
-    file_input = Path(user_input)
-
-    content = file_input.read_text() if file_input.is_file() else user_input
-
-    response = openai.ChatCompletion.create(
-        model=model,
-        messages=[
-            create_system_message(prompt),
-            create_user_message(username, content)
-        ],
-        user=f"{mac_address}::{username}"
-    )
-
-    view_choice(response["choices"][0])
-
-
-def create_conversation_completion(user_message, model, previous_messages):
+def send_chat_message(user_message, model, messages):
     openai.api_key = os.environ["OPENAI_API_KEY"]
     username, mac_address = get_user_information()
 
     messages_without_id = []
-    for message in previous_messages + [user_message]:
+
+    if user_message:
+        messages.append(user_message)
+
+    for message in messages:
         message_without_id = {
             "role": message["role"],
             "content": message["content"]
@@ -113,7 +106,6 @@ def create_conversation_completion(user_message, model, previous_messages):
             message_without_id["name"] = message["name"]
         messages_without_id.append(message_without_id)
 
-    # messages = [create_system_message()] + messages_without_id
     messages = messages_without_id
     response = openai.ChatCompletion.create(
         model=model,
@@ -122,6 +114,122 @@ def create_conversation_completion(user_message, model, previous_messages):
     )
 
     return response
+
+
+def open_conversation(conversation_name, model, messages):
+    conversation_dir = Path.home() / ".chatai/conversations"
+    conversation_dir.mkdir(parents=True, exist_ok=True)
+    conversation_file = get_conversation_file_path(conversation_name, model)
+    conversation = []
+
+    if conversation_file.is_file():
+        file_content = json.loads(conversation_file.read_text())
+        conversation = file_content
+        print(f"\nConversation file opened: {conversation_file}\n")
+    else:
+        # file_content = create_system_message(prompt)
+        # file_content["id"] = str(uuid.uuid4())
+        conversation = []
+        for message in messages:
+            message["id"] = str(uuid.uuid4())
+            conversation.append(message)
+
+        conversation_file.touch()
+        conversation_file.write_text(json.dumps(conversation))
+        print(f"\nConversation file created: {conversation_file}\n")
+        # view_message(file_content)
+
+    return conversation, conversation_file
+
+
+def view_message(message):
+    if message["role"] == "user":
+        label = bold_text(f"User ({message['id']}):")
+        print(f"\n{label}:\n\n{message['content']}\n")
+    elif message["role"] == "system":
+        label = bold_text("System:")
+        print(f"\n{label}\n\n{message['content']}\n")
+    else:
+        label = bold_text(f"Response ({message['id']}):")
+        print(f"\n{label}\n\n{message['content']}\n")
+        
+
+def view_choice(choice):
+    print("\nChatGPT Response:\n")
+    print(choice["message"]["content"])
+
+
+def ask_command(args):
+    prompt = load_prompt(args.prompt)
+    user_input = args.user_input
+    model = args.model or prompt["model"]
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+    username, mac_address = get_user_information()
+    file_input = Path(user_input)
+    content = file_input.read_text() if file_input.is_file() else user_input
+    messages = prompt["messages"]
+    
+    if user_input.strip().lower() in ["", "none", "help"]:
+        messages.append(create_user_message(username, content))
+
+    response = openai.ChatCompletion.create(
+        model=model,
+        messages=messages,
+        user=f"{mac_address}::{username}"
+    )
+
+    view_choice(response["choices"][0])
+
+
+def conversation_command(args):
+    clear_screen()
+    print("\nEntering an interactive conversation. \n\nType 'exit' to end the conversation.\n")
+    prompt = load_prompt(args.prompt)
+    conversation_name = args.conversation_name
+    model = args.model or prompt["model"]
+    username, _ = get_user_information()
+    conversation, conversation_file = open_conversation(conversation_name, model, prompt["messages"])
+
+    if conversation[-1]["role"] != "assistant":
+        response = send_chat_message(None, model, conversation)
+        choice = response["choices"][0]
+        assistant_message_id = str(uuid.uuid4())
+        assistant_message = choice["message"].to_dict_recursive()
+        assistant_message["id"] = assistant_message_id
+        conversation.append(assistant_message)
+        conversation_file.write_text(json.dumps(conversation, indent=2))
+
+
+    for message in conversation:
+        view_message(message)
+
+
+    while True:
+        user_input = input(bold_text("Message: "))
+
+        if user_input.lower() == "exit":
+            break
+
+        try:
+            user_message_id = str(uuid.uuid4())
+            user_message = {
+                "id": user_message_id,
+                "role": "user",
+                "name": username,
+                "content": f"{user_input}",
+            }
+            response = send_chat_message(user_message, model, conversation)
+            choice = response["choices"][0]
+            assistant_message_id = str(uuid.uuid4())
+            assistant_message = choice["message"].to_dict_recursive()
+            assistant_message["id"] = assistant_message_id
+            conversation.append(user_message)
+            conversation.append(assistant_message)
+            conversation_file.write_text(json.dumps(conversation, indent=2))
+            view_message(assistant_message)
+
+        except Exception as e:
+            print(f"Error: {e}")
 
 
 def delete_command(args):
@@ -144,88 +252,6 @@ def delete_command(args):
             print(f"\nConversation file deleted: {conversation_file}\n")
         except Exception as e:
             print(f"\nError deleting conversation file: {e}\n")
-
-
-def open_conversation(conversation_name, model, prompt):
-    conversation_dir = Path.home() / ".chatai/conversations"
-    conversation_dir.mkdir(parents=True, exist_ok=True)
-    conversation_file = get_conversation_file_path(conversation_name, model)
-    conversation = []
-
-    if conversation_file.is_file():
-        file_content = json.loads(conversation_file.read_text())
-        conversation = file_content
-        print(f"\nConversation file opened: {conversation_file}\n")
-    else:
-        file_content = create_system_message(prompt)
-        file_content["id"] = str(uuid.uuid4())
-        conversation = [file_content]
-        conversation_file.touch()
-        conversation_file.write_text(json.dumps(conversation))
-        print(f"\nConversation file created: {conversation_file}\n")
-        view_message(file_content)
-
-    return conversation, conversation_file
-
-
-def view_message(message):
-    
-    if message["role"] == "user":
-        label = bold_text(f"{message['name']} ({message['id']}):")
-        print(f"\n{label}:\n\n{message['content']}\n")
-    elif message["role"] == "system":
-        label = bold_text("System:")
-        print(f"\n{label}\n\n{message['content']}\n")
-    else:
-        label = bold_text(f"Response ({message['id']}):")
-        print(f"\n{label}\n\n{message['content']}\n")
-        
-
-
-def conversation_command(args):
-    clear_screen()
-    print("\nEntering an interactive conversation. \n\nType 'exit' to end the conversation.\n")
-    conversation_name = args.conversation_name
-    model = args.model
-    prompt = args.prompt
-    username, _ = get_user_information()
-    conversation, conversation_file = open_conversation(conversation_name, model, prompt)
-
-    for message in conversation:
-        view_message(message)
-
-
-    while True:
-        user_input = input(bold_text("Message: "))
-
-        if user_input.lower() == "exit":
-            break
-
-        try:
-            user_message_id = str(uuid.uuid4())
-            user_message = {
-                "id": user_message_id,
-                "role": "user",
-                "name": username,
-                "content": f"{user_input}",
-            }
-            response = create_conversation_completion(user_message, model, conversation)
-            choice = response["choices"][0]
-            assistant_message_id = str(uuid.uuid4())
-            assistant_message = choice["message"].to_dict_recursive()
-            assistant_message["id"] = assistant_message_id
-            conversation.append(user_message)
-            conversation.append(assistant_message)
-            conversation_file.write_text(json.dumps(conversation, indent=2))
-            view_message(assistant_message)
-
-        except Exception as e:
-            print(f"Error: {e}")
-
-
-def view_choice(choice):
-    print("\nChatGPT Response:\n")
-    print(choice["message"]["content"])
 
 
 def list_command(args):
@@ -301,12 +327,12 @@ def fork_command(args):
 def configure_subparsers(subparsers):
     ask_parser = subparsers.add_parser("ask", help="Ask a general question.")
     ask_parser.add_argument("user_input", type=str, help="User input to send the API.")
-    ask_parser.add_argument("-m", "--model", type=str, default=VALID_ASK_MODELS[0], choices=VALID_ASK_MODELS, help=f"Language model to use. Valid models: {', '.join(VALID_ASK_MODELS)}")
+    ask_parser.add_argument("-m", "--model", type=str, choices=VALID_ASK_MODELS, help=f"Language model to use. Valid models: {', '.join(VALID_ASK_MODELS)}")
     ask_parser.add_argument("-p", "--prompt", type=str, default="default", help="Name of a preconfigured prompt to use")
 
     conversation_parser = subparsers.add_parser("conversation", help="Start an interactive conversation.")
     conversation_parser.add_argument("conversation_name", type=str, help="Name of the conversation.")
-    conversation_parser.add_argument("-m", "--model", type=str, default=VALID_CONVERSATION_MODELS[0], choices=VALID_CONVERSATION_MODELS, help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}")
+    conversation_parser.add_argument("-m", "--model", type=str, choices=VALID_CONVERSATION_MODELS, help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}")
     conversation_parser.add_argument("-p", "--prompt", type=str, default="default", help="Name of a preconfigured prompt to use")
 
     delete_parser = subparsers.add_parser("delete", help="Delete a conversation.")

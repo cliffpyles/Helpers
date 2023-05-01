@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import argparse
 import openai
 import os
 import json
@@ -9,6 +8,7 @@ from tempfile import NamedTemporaryFile
 import webbrowser
 import uuid
 import yaml
+import click
 
 script_dir = Path(__file__).resolve(strict=False).parent
 
@@ -159,10 +159,9 @@ def view_choice(choice):
     print(choice["message"]["content"])
 
 
-def ask_command(args):
-    prompt = load_prompt(args.prompt)
-    user_input = args.user_input
-    model = args.model or prompt["model"]
+def ask_command(user_input, model, prompt):
+    prompt = load_prompt(prompt)
+    model = model or prompt["model"]
     openai.api_key = os.environ["OPENAI_API_KEY"]
     username, mac_address = get_user_information()
     file_input = Path(user_input)
@@ -181,12 +180,12 @@ def ask_command(args):
     view_choice(response["choices"][0])
 
 
-def conversation_command(args):
+def conversation_command(conversation_name, model, prompt):
     clear_screen()
     print("\nEntering an interactive conversation. \n\nType 'exit' to end the conversation.\n")
-    prompt = load_prompt(args.prompt)
-    conversation_name = args.conversation_name
-    model = args.model or prompt["model"]
+    prompt = load_prompt(prompt)
+    conversation_name = conversation_name
+    model = model or prompt["model"]
     username, _ = get_user_information()
     conversation, conversation_file = open_conversation(conversation_name, model, prompt["messages"])
 
@@ -232,10 +231,9 @@ def conversation_command(args):
             print(f"Error: {e}")
 
 
-def delete_command(args):
-    conversation_name = args.conversation_name
-    model = args.model
-    force = args.force
+def delete_command(conversation_name, model, force):
+    conversation_name = conversation_name
+    model = model
     conversation_file = get_conversation_file_path(conversation_name, model)
 
     if not conversation_file.is_file():
@@ -254,7 +252,7 @@ def delete_command(args):
             print(f"\nError deleting conversation file: {e}\n")
 
 
-def list_command(args):
+def list_command():
     conversation_dir = get_conversations_directory()
     conversation_files = conversation_dir.glob("*__gpt-*.json")
 
@@ -271,10 +269,7 @@ def list_command(args):
             print(f"\nName: {conversation['name']} | Model: {conversation['model']}\n")
 
 
-def draw_command(args):
-    image_description = args.image_description
-    browser = args.browser
-    size = args.size
+def draw_command(image_description, browser, size):
     openai.api_key = os.environ["OPENAI_API_KEY"]
     username, _ = get_user_information()
     response = openai.Image.create(
@@ -290,7 +285,7 @@ def draw_command(args):
         webbrowser.open_new_tab(image_url)
 
 
-def models_command(args):
+def models_command():
     openai.api_key = os.environ["OPENAI_API_KEY"]
     response = openai.Model.list()
     models = [model["id"] for model in response["data"]]
@@ -301,10 +296,7 @@ def models_command(args):
         print(f"{model}")
 
 
-def fork_command(args):
-    source_conversation_name = args.source_conversation_name
-    new_conversation_name = args.new_conversation_name
-    model = args.model
+def fork_command(source_conversation_name, new_conversation_name, model):
     source_conversation_file = get_conversation_file_path(source_conversation_name, model)
     new_conversation_file = get_conversation_file_path(new_conversation_name, model)
 
@@ -323,63 +315,62 @@ def fork_command(args):
     except Exception as e:
         print(f"\nError forking conversation: {e}\n")
 
-
-def configure_subparsers(subparsers):
-    ask_parser = subparsers.add_parser("ask", help="Ask a general question.")
-    ask_parser.add_argument("user_input", type=str, help="User input to send the API.")
-    ask_parser.add_argument("-m", "--model", type=str, choices=VALID_ASK_MODELS, help=f"Language model to use. Valid models: {', '.join(VALID_ASK_MODELS)}")
-    ask_parser.add_argument("-p", "--prompt", type=str, default="default", help="Name of a preconfigured prompt to use")
-
-    conversation_parser = subparsers.add_parser("conversation", help="Start an interactive conversation.")
-    conversation_parser.add_argument("conversation_name", type=str, help="Name of the conversation.")
-    conversation_parser.add_argument("-m", "--model", type=str, choices=VALID_CONVERSATION_MODELS, help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}")
-    conversation_parser.add_argument("-p", "--prompt", type=str, default="default", help="Name of a preconfigured prompt to use")
-
-    delete_parser = subparsers.add_parser("delete", help="Delete a conversation.")
-    delete_parser.add_argument("conversation_name", type=str, help="Name of the conversation to delete.")
-    delete_parser.add_argument("-m", "--model", type=str, default=VALID_CONVERSATION_MODELS[0], choices=VALID_CONVERSATION_MODELS, help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}")
-    delete_parser.add_argument("-f", "--force", action="store_true", help="Force deletion without confirmation.")
-
-    draw_parser = subparsers.add_parser("draw", help="Draw an image based on a description.")
-    draw_parser.add_argument("image_description", type=str, help="Description of the image.")
-    draw_parser.add_argument("-b", "--browser", action="store_true", help="Opens image in a new browser tab.")
-    draw_parser.add_argument("-s", "--size", type=str, default="256", choices=["256", "512", "1024"], help="Size of the image in pixels.")
-
-    fork_parser = subparsers.add_parser("fork", help="Fork a conversation.")
-    fork_parser.add_argument("source_conversation_name", type=str, help="Name of the conversation to fork.")
-    fork_parser.add_argument("new_conversation_name", type=str, help="Name of the new forked conversation.")
-    fork_parser.add_argument("-m", "--model", type=str, default=VALID_CONVERSATION_MODELS[0], choices=VALID_CONVERSATION_MODELS, help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}")
-
-    list_parser = subparsers.add_parser("list", help="List existing conversations.")
-
-    models_parser = subparsers.add_parser("models")
-
-
+@click.group()
 def main():
-    parser = argparse.ArgumentParser(description="Ask questions to OpenAPI.")
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
-    configure_subparsers(subparsers)
+    """
+    Ask questions to OpenAI.
+    """
+    pass
 
-    args = parser.parse_args()
 
-    if not args.command:
-        parser.print_help()
-        return
+@main.command()
+@click.argument("user_input", type=str)
+@click.option("-m", "--model", type=click.Choice(VALID_ASK_MODELS), help=f"Language model to use. Valid models: {', '.join(VALID_ASK_MODELS)}")
+@click.option("-p", "--prompt", type=str, default="default", help="Name of a preconfigured prompt to use")
+def ask(user_input, model, prompt):
+    ask_command(user_input, model, prompt)
 
-    if "OPENAI_API_KEY" not in os.environ:
-        os.environ["OPENAI_API_KEY"] = input("Enter your OpenAI API Key: ")
 
-    command_mapper = {
-        "ask": ask_command,
-        "conversation": conversation_command,
-        "delete": delete_command,
-        "draw": draw_command,
-        "fork": fork_command,
-        "list": list_command,
-        "models": models_command,
-    }
+@main.command()
+@click.argument("conversation_name", type=str)
+@click.option("-m", "--model", type=click.Choice(VALID_CONVERSATION_MODELS), help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}")
+@click.option("-p", "--prompt", type=str, default="default", help="Name of a preconfigured prompt to use")
+def conversation(conversation_name, model, prompt):
+    conversation_command(conversation_name, model, prompt)
 
-    command_mapper[args.command](args)
+
+@main.command()
+@click.argument("conversation_name", type=str)
+@click.option("-m", "--model", type=click.Choice(VALID_CONVERSATION_MODELS), help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}")
+@click.option("-f", "--force", is_flag=True, help="Force deletion without confirmation.")
+def delete(conversation_name, model, force):
+    delete_command(conversation_name, model, force)
+
+
+@main.command()
+@click.argument("image_description", type=str)
+@click.option("-b", "--browser", is_flag=True, help="Opens image in a new browser tab.")
+@click.option("-s", "--size", type=click.Choice(["256", "512", "1024"]), default="256", help="Size of the image in pixels.")
+def draw(image_description, browser, size):
+    draw_command(image_description, browser, size)
+
+
+@main.command()
+@click.argument("source_conversation_name", type=str)
+@click.argument("new_conversation_name", type=str)
+@click.option("-m", "--model", type=click.Choice(VALID_CONVERSATION_MODELS), help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}")
+def fork(source_conversation_name, new_conversation_name, model):
+    fork_command(source_conversation_name, new_conversation_name, model)
+
+
+@main.command()
+def list():
+    list_command()
+
+
+@main.command()
+def models():
+    models_command()
 
 
 if __name__ == "__main__":

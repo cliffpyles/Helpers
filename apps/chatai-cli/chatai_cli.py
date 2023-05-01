@@ -9,7 +9,10 @@ import webbrowser
 import uuid
 import yaml
 import click
+from rich.console import Console
+from rich.markdown import Markdown
 
+console = Console()
 script_dir = Path(__file__).resolve(strict=False).parent
 
 VALID_ASK_MODELS = ["gpt-3.5-turbo", "gpt-4"]
@@ -152,14 +155,13 @@ def view_message(message):
     if message["role"] == "user":
         message_id = message.get('id', 'None')
         click.secho(f"User ({message_id}):", bold=True)
-        click.echo(f"{message['content']}")
     elif message["role"] == "system":
         click.secho("System:", bold=True)
-        click.echo(f"{message['content']}")
     else:
         message_id = message.get('id', 'None')
         click.secho(f"Response ({message_id}):", bold=True)
-        click.echo(f"{message['content']}")
+    markdown = Markdown(message['content'])
+    console.print(markdown)
 
 
 def view_messages(messages):
@@ -243,8 +245,8 @@ def delete_command(conversation_name, model, force):
         click.echo(f"Conversation file not found: {conversation_file}")
     else:
         if not force:
-            confirmation = click.confirm(f"Are you sure you want to delete the conversation '{conversation_name}' with model '{model}'?:").lower()
-            if confirmation != "y":
+            confirmation = click.confirm(f"Are you sure you want to delete the conversation '{conversation_name}' with model '{model}'?:")
+            if not confirmation:
                 click.echo("Deletion canceled.")
                 return
 
@@ -365,7 +367,7 @@ def conversation(conversation_name, model, prompt):
 
 @main.command()
 @click.argument("conversation_name", type=str)
-@click.option("-m", "--model", type=click.Choice(VALID_CONVERSATION_MODELS), help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}")
+@click.option("-m", "--model", type=click.Choice(VALID_CONVERSATION_MODELS), default=VALID_CONVERSATION_MODELS[0], help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}")
 @click.option("-f", "--force", is_flag=True, help="Force deletion without confirmation.")
 def delete(conversation_name, model, force):
     delete_command(conversation_name, model, force)
@@ -382,7 +384,7 @@ def draw(image_description, browser, size):
 @main.command()
 @click.argument("source_conversation_name", type=str)
 @click.argument("new_conversation_name", type=str)
-@click.option("-m", "--model", type=click.Choice(VALID_CONVERSATION_MODELS), help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}")
+@click.option("-m", "--model", type=click.Choice(VALID_CONVERSATION_MODELS), default=VALID_CONVERSATION_MODELS[0], help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}")
 def fork(source_conversation_name, new_conversation_name, model):
     fork_command(source_conversation_name, new_conversation_name, model)
 

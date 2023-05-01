@@ -8,7 +8,7 @@ from tempfile import NamedTemporaryFile
 import webbrowser
 import uuid
 import yaml
-import click
+import rich_click as click
 from rich.console import Console
 from rich.markdown import Markdown
 

@@ -11,6 +11,8 @@ import yaml
 import rich_click as click
 from rich.console import Console
 from rich.markdown import Markdown
+from InquirerPy import inquirer
+from InquirerPy.validator import NumberValidator
 
 console = Console()
 script_dir = Path(__file__).resolve(strict=False).parent
@@ -223,13 +225,20 @@ def conversation_command(conversation_name, model, prompt):
         conversation_file.write_text(json.dumps(conversation, indent=2))
 
     view_messages(conversation)
-
+    multiline_mode = False
     while True:
-        user_input = click.prompt(click.style("Message", bold=True))
+        user_input = inquirer.text(
+            message="Message:", multiline=multiline_mode
+        ).execute()
 
         # Exit the conversation if the user types "/exit"
         if user_input.lower() == "/exit":
             break
+
+        # Enable multiline mode
+        if user_input.lower() == "/multi":
+            multiline_mode = True
+            continue
 
         # Execute the command if the input starts with a '/'
         if user_input.startswith("/"):
@@ -253,6 +262,7 @@ def conversation_command(conversation_name, model, prompt):
             conversation.append(assistant_message)
             conversation_file.write_text(json.dumps(conversation, indent=2))
             view_message(assistant_message)
+            multiline_mode = False
 
         except Exception as e:
             click.echo(f"Error: {e}")

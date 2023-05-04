@@ -213,7 +213,7 @@ def conversation_command(conversation_name, model, prompt):
     multiline_mode = False
     while True:
         user_input = inquirer.text(
-            message=f"New Message:", multiline=multiline_mode, qmark=f"\n\n{MESSAGE_INDICATOR}"
+            message="New Message:", multiline=multiline_mode, qmark=f"\n\n{MESSAGE_INDICATOR}", amark=f"\n\n{MESSAGE_INDICATOR}"
         ).execute()
 
         # Exit the conversation if the user types "/exit"

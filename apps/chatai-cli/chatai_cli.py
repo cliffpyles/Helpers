@@ -51,14 +51,6 @@ def load_prompt(prop_name = "default"):
         return prompts["default"]
 
 
-def bold_text(text):
-    return "\033[1m" + text + "\033[0m"
-
-
-def clear_screen():
-    os.system('clear') if os.name == 'posix' else os.system('cls')
-
-
 def clear_chat_history(conversation_file):
     try:
         conversation_file.write_text("[]")
@@ -91,7 +83,7 @@ def get_user_information():
     return username, mac_address
 
 
-def create_message(role, content, name=None):
+def create_message(role, name, content):
     message = {
         "role": role,
         "content": content
@@ -99,17 +91,6 @@ def create_message(role, content, name=None):
     if name:
         message["name"] = name
     return message
-
-
-def create_system_message(prompt = "default"):
-    if prompt in prompts:
-        return create_message("system", prompts[prompt])
-    else:
-        return create_message("system", prompts["default"])
-
-
-def create_user_message(username, content):
-    return create_message("user", content, name=username)
 
 
 def send_chat(**kwargs):
@@ -198,7 +179,7 @@ def ask_command(user_input, model, prompt):
     messages = prompt["messages"]
 
     if user_input:
-        messages.append(create_user_message(username, user_input))
+        messages.append(create_message("user", username, user_input))
 
     response_message = send_chat(
         model=model,
@@ -366,7 +347,7 @@ def send_command(filepath, model, prompt):
     content = file_input.read_text()
     messages = prompt["messages"]
 
-    messages.append(create_user_message(username, content))
+    messages.append(create_message("user", username, content))
 
     response_message = send_chat(
         model=model,

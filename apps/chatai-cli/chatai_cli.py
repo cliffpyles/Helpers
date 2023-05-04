@@ -21,6 +21,9 @@ VALID_ASK_MODELS = ["gpt-3.5-turbo", "gpt-4"]
 VALID_CONVERSATION_MODELS = ["gpt-3.5-turbo", "gpt-4"]
 VALID_SEND_MODELS = ["gpt-3.5-turbo", "gpt-4"]
 PROMPTS_DIR = "./prompts"
+SYSTEM_INDICATOR = "🌎" # Unicode "Earth Globe Americas" Symbol
+MESSAGE_INDICATOR = "👤" # Unicode "Bust in Silhouette" Symbol
+RESPONSE_INDICATOR = "🤖" # Unicode "Robot Face" Symbol
 
 def load_prompt(prop_name = "default"):
     prompt_configs = [yaml.safe_load(prompt.read_text()) for prompt in script_dir.glob("./prompts/*.yaml")]
@@ -171,14 +174,15 @@ def open_conversation(conversation_name, model, messages):
 def view_message(message):
     if message["role"] == "user":
         message_id = message.get('id', 'None')
-        click.secho(f"User ({message_id}):", bold=True)
+        click.secho(f"\n\n{MESSAGE_INDICATOR} Message ({message_id}):\n", bold=True)
     elif message["role"] == "system":
-        click.secho("System:", bold=True)
+        click.secho(f"\n\n{SYSTEM_INDICATOR} System:\n", bold=True)
     else:
         message_id = message.get('id', 'None')
-        click.secho(f"Response ({message_id}):", bold=True)
+        click.secho(f"\n\n{RESPONSE_INDICATOR} Response ({message_id}):\n", bold=True)
     markdown = Markdown(message['content'])
     console.print(markdown)
+    # click.echo("\n")
 
 
 def view_messages(messages):
@@ -228,7 +232,7 @@ def conversation_command(conversation_name, model, prompt):
     multiline_mode = False
     while True:
         user_input = inquirer.text(
-            message="Message:", multiline=multiline_mode
+            message=f"New Message:", multiline=multiline_mode, qmark=f"\n\n{MESSAGE_INDICATOR}"
         ).execute()
 
         # Exit the conversation if the user types "/exit"

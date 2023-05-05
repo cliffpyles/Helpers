@@ -3,6 +3,7 @@
 import openai
 import os
 import json
+import textwrap
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 import webbrowser
@@ -53,6 +54,16 @@ def load_prompt(prop_name = "default"):
         return prompts[cleaned_promp_name]
     else:
         return prompts["default"]
+
+
+def indent_text(text, spaces=4, max_width=None):
+    if max_width is not None:
+        text = textwrap.fill(text, max_width)
+        
+    indentation = " " * spaces
+    indented_lines = [indentation + line for line in text.splitlines()]
+    indented_text = "\n".join(indented_lines)
+    return indented_text
 
 
 def clear_chat_history(conversation_file):
@@ -298,6 +309,34 @@ def list_command():
             click.echo(f"Name: {conversation['name']} | Model: {conversation['model']}")
 
 
+def prompts_command():
+    prompt_configs = [
+        yaml.safe_load(prompt.read_text()) for prompt in script_dir.glob("./prompts/*.yaml")
+    ]
+
+    if not prompt_configs:
+        click.echo("No available prompts.")
+    else:
+        content = "Available Prompts:\n\n"
+        for prompt in prompt_configs:
+            keys = prompt.get("keys")
+            model = prompt.get("model")
+            messages = prompt.get("messages")
+
+            content += indent_text(f"Name: {keys[0]}", max_width=120)
+            content += "\n\n"
+            content += indent_text(f"Aliases: {', '.join(keys[1:])}", max_width=120)
+            content += "\n\n"
+            content += indent_text(f"Default Model: {model}", max_width=120)
+            content += "\n\n"
+            content += indent_text(f"System Context:\n{messages[0]['content']}", max_width=120)
+            content += "\n\n"
+            content += indent_text("-" * 40)
+            content += "\n\n"
+
+        click.echo_via_pager(content)
+
+
 def draw_command(image_description, browser, size):
     openai.api_key = os.environ["OPENAI_API_KEY"]
     username, _ = get_user_information()
@@ -429,6 +468,11 @@ def models():
 @click.option("-p", "--prompt", type=str, default="default", help="Name of a preconfigured prompt to use")
 def send(filepath, model, prompt):
     send_command(filepath, model, prompt)
+
+
+@main.command()
+def prompts():
+    prompts_command()
 
 
 if __name__ == "__main__":

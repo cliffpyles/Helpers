@@ -61,7 +61,7 @@ def clear_chat_history(conversation_file):
 
 
 def execute_command(command_name, app_state):
-    command_name = command_name.lower()
+    command_name = command_name[1:].lower()
     unknown_command = lambda: click.echo(f"Unrecognized command: {command_name}")
     result = conversation_commands.get(command_name, unknown_command)(app_state)
 
@@ -203,40 +203,33 @@ def conversation_command(conversation_name, model, prompt):
     username, _ = get_user_information()
     conversation, conversation_file = open_conversation(conversation_name, model, prompt["messages"])
 
-    if conversation[-1]["role"] != "assistant":
-        response_message = send_chat_message(None, model, conversation)
-        assistant_message_id = str(uuid.uuid4())
-        assistant_message = response_message.to_dict_recursive()
-        assistant_message["id"] = assistant_message_id
-        conversation.append(assistant_message)
-        conversation_file.write_text(json.dumps(conversation, indent=2))
+    # if conversation[-1]["role"] != "assistant":
+    #     response_message = send_chat_message(None, model, conversation)
+    #     assistant_message_id = str(uuid.uuid4())
+    #     assistant_message = response_message.to_dict_recursive()
+    #     assistant_message["id"] = assistant_message_id
+    #     conversation.append(assistant_message)
+    #     conversation_file.write_text(json.dumps(conversation, indent=2))
 
     view_messages(conversation)
 
     app_state = {
-        "multiline_mode": False,
-        "conversation": conversation_file,
-        "continue": False
+        "multiline_mode": False
     }
 
     while True:
-        print(app_state)
-
         user_input = inquirer.text(
             message="New Message:",
             multiline=app_state.get("multiline_mode", False),
             qmark=f"\n\n{MESSAGE_INDICATOR}",
-            amark=f"\n\n{MESSAGE_INDICATOR}"
+            amark=f"\n\n{MESSAGE_INDICATOR}",
+            wrap_lines=True
         ).execute()
 
         # Execute the command if the input starts with a '/'
         if user_input.startswith("/"):
-            command = user_input[1:]
-            result = execute_command(command, app_state)
-            app_state = result
-            if result.get("continue"):
-                continue
-        else:
+            app_state = execute_command(user_input, app_state)
+        elif len(user_input.strip()) > 0:
             try:
                 user_message_id = str(uuid.uuid4())
                 user_message = {
@@ -246,10 +239,8 @@ def conversation_command(conversation_name, model, prompt):
                     "content": f"{user_input}",
                 }
                 response_message = send_chat_message(user_message, model, conversation)
-                assistant_message_id = str(uuid.uuid4())
                 assistant_message = response_message.to_dict_recursive()
-                assistant_message["id"] = assistant_message_id
-                conversation.append(user_message)
+                assistant_message["id"] = str(uuid.uuid4())
                 conversation.append(assistant_message)
                 conversation_file.write_text(json.dumps(conversation, indent=2))
                 view_message(assistant_message)

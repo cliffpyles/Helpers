@@ -5,7 +5,6 @@ def exit_command(app_state):
 
 def enable_multiline_command(app_state):
     app_state["multiline_mode"] = True
-    app_state["continue"] = True
 
     return app_state
 

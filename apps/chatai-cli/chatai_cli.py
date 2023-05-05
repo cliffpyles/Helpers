@@ -14,6 +14,9 @@ from rich.markdown import Markdown
 from InquirerPy import inquirer
 from InquirerPy.validator import NumberValidator
 from conversation_commands import conversation_commands
+from prompt_toolkit import PromptSession
+from prompt_toolkit.history import InMemoryHistory
+from prompt_toolkit.key_binding import KeyBindings
 
 console = Console()
 script_dir = Path(__file__).resolve(strict=False).parent
@@ -203,6 +206,13 @@ def conversation_command(conversation_name, model, prompt):
     username, _ = get_user_information()
     conversation, conversation_file = open_conversation(conversation_name, model, prompt["messages"])
 
+    session = PromptSession(history=InMemoryHistory())
+    key_bindings = KeyBindings()
+
+    for message in conversation:
+        if message["role"] == "user":
+            session.history.append_string(message["content"])
+
     # if conversation[-1]["role"] != "assistant":
     #     response_message = send_chat_message(None, model, conversation)
     #     assistant_message_id = str(uuid.uuid4())
@@ -211,6 +221,7 @@ def conversation_command(conversation_name, model, prompt):
     #     conversation.append(assistant_message)
     #     conversation_file.write_text(json.dumps(conversation, indent=2))
 
+
     view_messages(conversation)
 
     app_state = {
@@ -218,13 +229,12 @@ def conversation_command(conversation_name, model, prompt):
     }
 
     while True:
-        user_input = inquirer.text(
-            message="New Message:",
+        user_input = session.prompt(
+            message=f"\n\n{MESSAGE_INDICATOR} New Message: ",
+            key_bindings=key_bindings,
             multiline=app_state.get("multiline_mode", False),
-            qmark=f"\n\n{MESSAGE_INDICATOR}",
-            amark=f"\n\n{MESSAGE_INDICATOR}",
             wrap_lines=True
-        ).execute()
+        )
 
         # Execute the command if the input starts with a '/'
         if user_input.startswith("/"):

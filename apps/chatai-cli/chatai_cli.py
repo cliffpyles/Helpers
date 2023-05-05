@@ -13,6 +13,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 from InquirerPy import inquirer
 from InquirerPy.validator import NumberValidator
+from conversation_commands import conversation_commands
 
 console = Console()
 script_dir = Path(__file__).resolve(strict=False).parent
@@ -59,11 +60,12 @@ def clear_chat_history(conversation_file):
         click.echo(f"Error clearing chat history: {e}")
 
 
-def execute_command(command, conversation_file):
-    if command.lower() == "clear":
-        clear_chat_history(conversation_file)
-    else:
-        click.echo(f"Unrecognized command: {command}")
+def execute_command(command_name, app_state):
+    command_name = command_name.lower()
+    unknown_command = lambda: click.echo(f"Unrecognized command: {command_name}")
+    result = conversation_commands.get(command_name, unknown_command)(app_state)
+
+    return result
 
 
 def get_conversation_file_path(conversation_name, model):
@@ -210,47 +212,51 @@ def conversation_command(conversation_name, model, prompt):
         conversation_file.write_text(json.dumps(conversation, indent=2))
 
     view_messages(conversation)
-    multiline_mode = False
+
+    app_state = {
+        "multiline_mode": False,
+        "conversation": conversation_file,
+        "continue": False
+    }
+
     while True:
+        print(app_state)
+
         user_input = inquirer.text(
-            message="New Message:", multiline=multiline_mode, qmark=f"\n\n{MESSAGE_INDICATOR}", amark=f"\n\n{MESSAGE_INDICATOR}"
+            message="New Message:",
+            multiline=app_state.get("multiline_mode", False),
+            qmark=f"\n\n{MESSAGE_INDICATOR}",
+            amark=f"\n\n{MESSAGE_INDICATOR}"
         ).execute()
-
-        # Exit the conversation if the user types "/exit"
-        if user_input.lower() == "/exit":
-            break
-
-        # Enable multiline mode
-        if user_input.lower() == "/multi":
-            multiline_mode = True
-            continue
 
         # Execute the command if the input starts with a '/'
         if user_input.startswith("/"):
             command = user_input[1:]
-            execute_command(command, conversation_file)
-            continue
+            result = execute_command(command, app_state)
+            app_state = result
+            if result.get("continue"):
+                continue
+        else:
+            try:
+                user_message_id = str(uuid.uuid4())
+                user_message = {
+                    "id": user_message_id,
+                    "role": "user",
+                    "name": username,
+                    "content": f"{user_input}",
+                }
+                response_message = send_chat_message(user_message, model, conversation)
+                assistant_message_id = str(uuid.uuid4())
+                assistant_message = response_message.to_dict_recursive()
+                assistant_message["id"] = assistant_message_id
+                conversation.append(user_message)
+                conversation.append(assistant_message)
+                conversation_file.write_text(json.dumps(conversation, indent=2))
+                view_message(assistant_message)
+                app_state["multiline_mode"] = False
 
-        try:
-            user_message_id = str(uuid.uuid4())
-            user_message = {
-                "id": user_message_id,
-                "role": "user",
-                "name": username,
-                "content": f"{user_input}",
-            }
-            response_message = send_chat_message(user_message, model, conversation)
-            assistant_message_id = str(uuid.uuid4())
-            assistant_message = response_message.to_dict_recursive()
-            assistant_message["id"] = assistant_message_id
-            conversation.append(user_message)
-            conversation.append(assistant_message)
-            conversation_file.write_text(json.dumps(conversation, indent=2))
-            view_message(assistant_message)
-            multiline_mode = False
-
-        except Exception as e:
-            click.echo(f"Error: {e}")
+            except Exception as e:
+                click.echo(f"Error: {e}")
 
 
 def delete_command(conversation_name, model, force):

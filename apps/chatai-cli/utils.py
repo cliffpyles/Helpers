@@ -78,7 +78,7 @@ def load_session(conversation):
     return session
 
 
-def load_prompt(prop_name="default"):
+def load_prompt_preconfigured(prop_name):
     script_dir = Path(__file__).resolve(strict=False).parent
     prompt_configs = [
         yaml.safe_load(prompt.read_text())
@@ -100,6 +100,19 @@ def load_prompt(prop_name="default"):
         return prompts[cleaned_promp_name]
     else:
         return prompts["default"]
+
+
+def load_prompt_filepath(filepath):
+    prompt_file = Path(filepath).expanduser()
+    prompt = yaml.safe_load(prompt_file.read_text())
+    return prompt
+
+
+def load_prompt(prop_name="default", filepath=None):
+    if not filepath:
+        return load_prompt_preconfigured(prop_name)
+    else:
+        return load_prompt_filepath(filepath)
 
 
 def load_prompts():

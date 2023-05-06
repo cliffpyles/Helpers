@@ -128,8 +128,22 @@ def send(filepath, model, prompt):
 
 @main.command()
 def prompts():
-    """Lists info about the available prompts"""
+    """Lists preconfigured prompts"""
     prompts_command()
+
+
+@main.command()
+@click.argument("filepath", type=str)
+def prompt(filepath):
+    """Executes the prompt at the given filepath"""
+    prompt_command(filepath)
+
+
+@main.command()
+@click.argument("filepath", type=str)
+def send(filepath, model, prompt):
+    """Send the contents of a file to the chatbot"""
+    send_command(filepath, model, prompt)
 
 
 if __name__ == "__main__":

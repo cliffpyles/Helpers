@@ -131,3 +131,11 @@ def send_command(filepath, model, prompt):
         messages.append(user_message)
         messages.append(response_message)
     view_messages(messages)
+
+
+def prompt_command(filepath):
+    prompt = load_prompt(filepath=filepath)
+    response_message = send_chat(**prompt)
+
+
+    view_messages(prompt["messages"] + [response_message])

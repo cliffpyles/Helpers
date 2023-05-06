@@ -1,40 +1,50 @@
 from utils import *
-
+from constants import *
+from lib.datastore import Datastore
+from pathlib import Path
 
 def ask_command(user_input, model, prompt):
+    username, mac_address = get_user_information()
     prompt = load_prompt(prompt)
     model = model or prompt["model"]
     username, mac_address = get_user_information()
     messages = prompt["messages"]
 
     if user_input:
-        messages.append(create_message("user", username, user_input))
+        user_message = {
+            "role": "user",
+            "name": username,
+            "mac_address": mac_address,
+            "content": user_input
+        }
+        response_message = send_chat_message(
+            model=model,
+            messages=messages,
+            user_message=user_message
+        )
+        messages.append(user_message)
+        messages.append(response_message)
 
-    response_message = send_chat(
-        model=model, messages=messages, user=f"{mac_address}::{username}"
-    )
-
-    view_messages(messages + [response_message])
+    view_messages(messages)
 
 
 def conversation_command(conversation_name, model, prompt):
-    username, _ = get_user_information()
+    username, mac_address = get_user_information()
     prompt = load_prompt(prompt)
     model = model or prompt["model"]
-    conversation_path = get_conversation_path(conversation_name, model)
-    conversation, conversation_file = open_conversation(
-        conversation_path, prompt["messages"]
-    )
-    view_conversation(conversation, conversation_file, model)
+    conversation_path = Path(CONVERSATIONS_DIR).expanduser() / f"{conversation_name}__{model}.json"
+    conversation = Datastore(conversation_path)
+    session = load_session(conversation)
+    key_bindings = load_key_bindings()
+
+    view_conversation(conversation, key_bindings, mac_address, model, session, username)
 
 
 def delete_command(conversation_name, model, force):
-    conversation_name = conversation_name
-    model = model
-    conversation_file = get_conversation_path(conversation_name, model)
+    conversation_path = Path(CONVERSATIONS_DIR).expanduser() / f"{conversation_name}__{model}.json"
 
-    if not conversation_file.is_file():
-        click.echo(f"Conversation file not found: {conversation_file}")
+    if not conversation_path.is_file():
+        click.echo(f"Conversation file not found: {conversation_path}")
     else:
         if not force:
             confirmation = click.confirm(
@@ -45,15 +55,14 @@ def delete_command(conversation_name, model, force):
                 return
 
         try:
-            conversation_file.unlink()
-            click.echo(f"Conversation file deleted: {conversation_file}")
+            conversation_path.unlink()
+            click.echo(f"Conversation file deleted: {conversation_path}")
         except Exception as e:
             click.echo(f"Error deleting conversation file: {e}")
 
 
 def list_command():
-    conversation_dir = get_conversations_directory()
-    conversation_files = conversation_dir.glob("*__gpt-*.json")
+    conversation_files = Path(CONVERSATIONS_DIR).expanduser().glob("*__gpt-*.json")
 
     conversations = []
     for file in conversation_files:

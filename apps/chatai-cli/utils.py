@@ -18,7 +18,8 @@ from rich.markdown import Markdown
 from tempfile import NamedTemporaryFile
 from constants import *
 
-def create_message(role, name, content):
+
+def create_message(content, name, role, mac_address):
     message = {"role": role, "content": content}
     if name:
         message["name"] = name
@@ -59,6 +60,19 @@ def indent_text(text, spaces=4, max_width=None):
     indented_lines = [indentation + line for line in text.splitlines()]
     indented_text = "\n".join(indented_lines)
     return indented_text
+
+
+def load_key_bindings():
+    return KeyBindings()
+
+
+def load_session(conversation):
+    session = PromptSession(history=InMemoryHistory())
+    for message in conversation.get_items():
+        if message["role"] == "user":
+            session.history.append_string(message["content"])
+
+    return session
 
 
 def load_prompt(prop_name="default"):
@@ -111,6 +125,14 @@ def open_conversation(conversation_path, messages):
     return conversation, conversation_path
 
 
+def serialize_message(message):
+    serialized_message = {"role": message["role"], "content": message["content"]}
+    if "name" in message:
+        serialized_message["name"] = message["name"]
+
+    return serialized_message
+
+
 def send_chat(**kwargs):
     openai.api_key = os.environ["OPENAI_API_KEY"]
     response = openai.ChatCompletion.create(**kwargs)
@@ -118,26 +140,17 @@ def send_chat(**kwargs):
     return response["choices"][0]["message"]
 
 
-def send_chat_message(user_message, model, messages):
-    username, mac_address = get_user_information()
-
-    messages_without_id = []
-
-    if user_message:
-        messages.append(user_message)
-
+def send_chat_message(model, messages, user_message):
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+    messages_payload = []
+    user = f"{user_message['mac_address']}::{user_message['name']}"
     for message in messages:
-        message_without_id = {"role": message["role"], "content": message["content"]}
-        if "name" in message:
-            message_without_id["name"] = message["name"]
-        messages_without_id.append(message_without_id)
+        messages_payload.append(serialize_message(message))
+    if user_message:
+        messages_payload.append(serialize_message(user_message))
+    response = openai.ChatCompletion.create(model=model, messages=messages_payload, user=user)
 
-    messages = messages_without_id
-    response_message = send_chat(
-        model=model, messages=messages, user=f"{mac_address}::{username}"
-    )
-
-    return response_message
+    return response["choices"][0]["message"]
 
 
 def send_image(image_description, size):
@@ -148,49 +161,44 @@ def send_image(image_description, size):
     response["data"][0]["url"]
 
 
-def view_conversation(conversation, conversation_file, model):
-    app_state = {"multiline_mode": False}
-    session = PromptSession(history=InMemoryHistory())
-    key_bindings = KeyBindings()
-    for message in conversation:
-        if message["role"] == "user":
-            session.history.append_string(message["content"])
-
+def view_conversation(conversation, key_bindings, mac_address, model, session, username):
     click.clear()
     click.echo("Entering an interactive conversation.")
     click.echo("Type 'exit' to end the conversation.")
-    view_messages(conversation)
+    view_messages(conversation.get_items())
+    view_message_input(conversation, key_bindings, mac_address, model, session, username)
+
+
+def view_message_input(conversation, key_bindings, mac_address, model, session, username):
+    current_state = {"multiline_mode": False}
     while True:
         user_input = session.prompt(
             message=f"\n\n{MESSAGE_INDICATOR} New Message: ",
             key_bindings=key_bindings,
-            multiline=app_state.get("multiline_mode", False),
+            multiline=current_state.get("multiline_mode", False),
             wrap_lines=True,
         )
 
         # Execute the command if the input starts with a '/'
         if user_input.startswith("/"):
-            app_state = execute_command(user_input, app_state)
+            current_state = execute_command(user_input, current_state)
         elif len(user_input.strip()) > 0:
             try:
-                user_message_id = str(uuid.uuid4())
-                user_message = {
-                    "id": user_message_id,
+                user_message = conversation.create_item({
                     "role": "user",
                     "name": username,
                     "content": f"{user_input}",
-                }
-                response_message = send_chat_message(user_message, model, conversation)
+                    "mac_address": mac_address,
+                })
+                messages = conversation.get_items()
+                response_message = send_chat_message(model, messages, user_message)
                 assistant_message = response_message.to_dict_recursive()
-                assistant_message["id"] = str(uuid.uuid4())
-                conversation.append(assistant_message)
-                conversation_file.write_text(json.dumps(conversation, indent=2))
+                conversation.create_item(assistant_message)
                 view_message(assistant_message)
-                app_state["multiline_mode"] = False
+                current_state["multiline_mode"] = False
 
             except Exception as e:
                 click.echo(f"Error: {e}")
-
 
 
 def view_message(message):

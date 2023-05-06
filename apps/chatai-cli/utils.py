@@ -153,6 +153,14 @@ def render_text(text, **kwargs):
     click.echo(text, **kwargs)
 
 
+def save_prompt(filepath, prompt):
+    filepath = Path(filepath).expanduser()
+    content = yaml.dump(prompt)
+    filepath.write_text(content)
+
+    return filepath
+
+
 def serialize_message(message):
     serialized_message = {"role": message["role"], "content": message["content"]}
     if "name" in message:

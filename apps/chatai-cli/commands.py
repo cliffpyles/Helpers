@@ -1,5 +1,6 @@
 from utils import *
 from constants import *
+from views import *
 from lib.datastore import Datastore
 from pathlib import Path
 
@@ -36,7 +37,6 @@ def conversation_command(conversation_name, model, prompt):
     conversation = Datastore(conversation_path)
     session = load_session(conversation)
     key_bindings = load_key_bindings()
-
     view_conversation(conversation, key_bindings, mac_address, model, session, username)
 
 
@@ -63,56 +63,18 @@ def delete_command(conversation_name, model, force):
 
 def list_command():
     conversation_files = Path(CONVERSATIONS_DIR).expanduser().glob("*__gpt-*.json")
-
-    conversations = []
-    for file in conversation_files:
-        conversation_name, model = file.stem.split("__")
-        conversations.append({"name": conversation_name, "model": model})
-
-    if not conversations:
-        click.echo("No existing conversations found.")
-    else:
-        click.echo("Existing conversations:")
-        for conversation in conversations:
-            click.echo(f"Name: {conversation['name']} | Model: {conversation['model']}")
+    view_conversations(conversation_files)    
 
 
 def prompts_command():
     prompts = load_prompts()
-
-    if not prompts:
-        click.echo("No available prompts.")
-    else:
-        content = "Available Prompts:\n\n"
-        for prompt in prompts:
-            keys = prompt.get("keys")
-            model = prompt.get("model")
-            messages = prompt.get("messages")
-
-            content += indent_text(f"Name: {keys[0]}", max_width=120)
-            content += "\n\n"
-            content += indent_text(f"Aliases: {', '.join(keys[1:])}", max_width=120)
-            content += "\n\n"
-            content += indent_text(f"Default Model: {model}", max_width=120)
-            content += "\n\n"
-            content += indent_text(
-                f"System Context:\n{messages[0]['content']}", max_width=120
-            )
-            content += "\n\n"
-            content += indent_text("-" * 40)
-            content += "\n\n"
-
-        click.echo_via_pager(content)
-
+    view_prompts(prompts)
+    
 
 def draw_command(image_description, browser, size):
     username, _ = get_user_information()
     image_url = send_image(image_description, size)
-
-    click.echo(f"Preview: {image_url}")
-
-    if browser:
-        webbrowser.open_new_tab(image_url)
+    view_image(image_description, image_url, size)
 
 
 def models_command():

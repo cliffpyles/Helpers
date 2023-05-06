@@ -1,7 +1,10 @@
 import json
 import openai
 import os
+import requests
 import rich_click as click
+import shutil
+import subprocess
 import textwrap
 import uuid
 import webbrowser
@@ -17,7 +20,6 @@ from rich.console import Console
 from rich.markdown import Markdown
 from tempfile import NamedTemporaryFile
 from constants import *
-
 
 def create_message(content, name, role, mac_address):
     message = {"role": role, "content": content}
@@ -100,6 +102,7 @@ def load_prompt(prop_name="default"):
 
 
 def load_prompts():
+    script_dir = Path(__file__).resolve(strict=False).parent
     prompts = [
         yaml.safe_load(prompt.read_text())
         for prompt in script_dir.glob("./prompts/*.yaml")
@@ -123,6 +126,17 @@ def open_conversation(conversation_path, messages):
         conversation_path.write_text(json.dumps(conversation))
 
     return conversation, conversation_path
+
+
+def render_image(image_url):
+    if shutil.which('imgcat'):
+        response = requests.get(image_url)
+        image_data = response.content
+        subprocess.run(['imgcat'], input=image_data, check=True)
+
+
+def render_text(text, **kwargs):
+    click.echo(text, **kwargs)
 
 
 def serialize_message(message):
@@ -158,63 +172,4 @@ def send_image(image_description, size):
     response = openai.Image.create(
         prompt=f"{image_description}", n=1, size=f"{size}x{size}"
     )
-    response["data"][0]["url"]
-
-
-def view_conversation(conversation, key_bindings, mac_address, model, session, username):
-    click.clear()
-    click.echo("Entering an interactive conversation.")
-    click.echo("Type 'exit' to end the conversation.")
-    view_messages(conversation.get_items())
-    view_message_input(conversation, key_bindings, mac_address, model, session, username)
-
-
-def view_message_input(conversation, key_bindings, mac_address, model, session, username):
-    current_state = {"multiline_mode": False}
-    while True:
-        user_input = session.prompt(
-            message=f"\n\n{MESSAGE_INDICATOR} New Message: ",
-            key_bindings=key_bindings,
-            multiline=current_state.get("multiline_mode", False),
-            wrap_lines=True,
-        )
-
-        # Execute the command if the input starts with a '/'
-        if user_input.startswith("/"):
-            current_state = execute_command(user_input, current_state)
-        elif len(user_input.strip()) > 0:
-            try:
-                user_message = conversation.create_item({
-                    "role": "user",
-                    "name": username,
-                    "content": f"{user_input}",
-                    "mac_address": mac_address,
-                })
-                messages = conversation.get_items()
-                response_message = send_chat_message(model, messages, user_message)
-                assistant_message = response_message.to_dict_recursive()
-                conversation.create_item(assistant_message)
-                view_message(assistant_message)
-                current_state["multiline_mode"] = False
-
-            except Exception as e:
-                click.echo(f"Error: {e}")
-
-
-def view_message(message):
-    console = Console()
-    if message["role"] == "user":
-        message_id = message.get("id", "None")
-        click.secho(f"\n\n{MESSAGE_INDICATOR} Message ({message_id}):\n", bold=True)
-    elif message["role"] == "system":
-        click.secho(f"\n\n{SYSTEM_INDICATOR} System:\n", bold=True)
-    else:
-        message_id = message.get("id", "None")
-        click.secho(f"\n\n{RESPONSE_INDICATOR} Response ({message_id}):\n", bold=True)
-    markdown = Markdown(message["content"])
-    console.print(markdown)
-
-
-def view_messages(messages):
-    for message in messages:
-        view_message(message)
+    return response["data"][0]["url"]

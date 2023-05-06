@@ -21,6 +21,7 @@ from rich.markdown import Markdown
 from tempfile import NamedTemporaryFile
 from constants import *
 
+
 def create_message(content, name, role, mac_address):
     message = {"role": role, "content": content}
     if name:

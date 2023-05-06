@@ -8,7 +8,6 @@ def ask_command(user_input, model, prompt):
     username, mac_address = get_user_information()
     prompt = load_prompt(prompt)
     model = model or prompt["model"]
-    username, mac_address = get_user_information()
     messages = prompt["messages"]
 
     if user_input:
@@ -111,18 +110,24 @@ def fork_command(source_conversation_name, new_conversation_name, model):
 
 
 def send_command(filepath, model, prompt):
+    username, mac_address = get_user_information()
     prompt = load_prompt(prompt)
     model = model or prompt["model"]
-    openai.api_key = os.environ["OPENAI_API_KEY"]
     username, mac_address = get_user_information()
-    file_input = Path(filepath)
-    content = file_input.read_text()
     messages = prompt["messages"]
-
-    messages.append(create_message("user", username, content))
-
-    response_message = send_chat(
-        model=model, messages=messages, user=f"{mac_address}::{username}"
-    )
-
-    view_message(response_message)
+    file_content = Path(filepath).read_text()
+    if file_content:
+        user_message = {
+            "role": "user",
+            "name": username,
+            "mac_address": mac_address,
+            "content": file_content
+        }
+        response_message = send_chat_message(
+            model=model,
+            messages=messages,
+            user_message=user_message
+        )
+        messages.append(user_message)
+        messages.append(response_message)
+    view_messages(messages)

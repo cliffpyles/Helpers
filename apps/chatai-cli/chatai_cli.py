@@ -134,9 +134,10 @@ def prompts():
 
 @main.command()
 @click.argument("filepath", type=str)
-def prompt(filepath):
+@click.option("-r", "--raw", is_flag=True, help="Show the raw content")
+def prompt(filepath, raw):
     """Executes the prompt at the given filepath"""
-    prompt_command(filepath)
+    prompt_command(filepath, raw)
 
 
 @main.command()

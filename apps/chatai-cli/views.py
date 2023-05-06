@@ -62,7 +62,7 @@ def view_message_input(conversation, key_bindings, mac_address, model, session, 
                 click.echo(f"Error: {e}")
 
 
-def view_message(message):
+def view_message(message, raw=False):
     console = Console()
     if message["role"] == "user":
         message_id = message.get("id", "None")
@@ -72,13 +72,16 @@ def view_message(message):
     else:
         message_id = message.get("id", "None")
         click.secho(f"\n\n{RESPONSE_INDICATOR} Response ({message_id}):\n", bold=True)
-    markdown = Markdown(message["content"])
-    console.print(markdown)
+    if raw:
+        click.echo(message["content"])
+    else:
+        markdown = Markdown(message["content"])
+        console.print(markdown)
 
 
-def view_messages(messages):
+def view_messages(messages, raw=False):
     for message in messages:
-        view_message(message)
+        view_message(message, raw)
 
 
 def view_prompts(prompts):

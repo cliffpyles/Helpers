@@ -1,7 +1,0 @@
-- Add ability to delete messages from from conversations
-- Add ability to attach files to conversations
-- Add ability to switch models in conversations?
-- Add ability to give prompt when using ask command
-- Add ability to show current token usage
-- Add ability to show available tokens
-- Add logging for raw entries and responses for app

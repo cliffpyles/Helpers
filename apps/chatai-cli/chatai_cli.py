@@ -24,9 +24,12 @@ def main():
     default="default",
     help="Name of a preconfigured prompt to use",
 )
-def ask(user_input, model, prompt):
+@click.option(
+    "-s", "--stream", is_flag=True, help="Whether the response should be streamed."
+)
+def ask(**kwargs):
     """Ask a single question to the chatbot"""
-    ask_command(user_input, model, prompt)
+    ask_command(**kwargs)
 
 
 @main.command()
@@ -44,9 +47,13 @@ def ask(user_input, model, prompt):
     default="default",
     help="Name of a preconfigured prompt to use",
 )
-def conversation(conversation_name, model, prompt):
+@click.option(
+    "-s", "--stream", is_flag=True, help="Whether the response should be streamed."
+)
+def conversation(**kwargs):
     """Start an ongoing conversation with the chatbot"""
-    conversation_command(conversation_name, model, prompt)
+    conversation_command(**kwargs)
+
 
 
 @main.command()
@@ -61,9 +68,9 @@ def conversation(conversation_name, model, prompt):
 @click.option(
     "-f", "--force", is_flag=True, help="Force deletion without confirmation."
 )
-def delete(conversation_name, model, force):
+def delete(**kwargs):
     """Delete a conversation"""
-    delete_command(conversation_name, model, force)
+    delete_command(**kwargs)
 
 
 @main.command()
@@ -76,9 +83,9 @@ def delete(conversation_name, model, force):
     default="256",
     help="Size of the image in pixels.",
 )
-def draw(image_description, browser, size):
+def draw(**kwargs):
     """Draw an image based on a description"""
-    draw_command(image_description, browser, size)
+    draw_command(**kwargs)
 
 
 @main.command()
@@ -91,19 +98,19 @@ def draw(image_description, browser, size):
     default=VALID_CONVERSATION_MODELS[0],
     help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}",
 )
-def fork(source_conversation_name, new_conversation_name, model):
+def fork(**kwargs):
     """Duplicate an existing conversation"""
-    fork_command(source_conversation_name, new_conversation_name, model)
+    fork_command(**kwargs)
 
 @main.command()
-def list():
+def list(**kwargs):
     """List existing conversations"""
-    list_command()
+    list_command(**kwargs)
 
 @main.command()
-def models():
+def models(**kwargs):
     """Show the available models"""
-    models_command()
+    models_command(**kwargs)
 
 
 @main.command()
@@ -121,31 +128,27 @@ def models():
     default="default",
     help="Name of a preconfigured prompt to use",
 )
-def send(filepath, model, prompt):
+def send(**kwargs):
     """Send the contents of a file to the chatbot"""
-    send_command(filepath, model, prompt)
+    send_command(**kwargs)
 
 
 @main.command()
-def prompts():
+def prompts(**kwargs):
     """Lists preconfigured prompts"""
-    prompts_command()
+    prompts_command(**kwargs)
 
 
 @main.command()
 @click.argument("filepath", type=str)
 @click.option("-r", "--raw", is_flag=True, help="Show the raw content")
-@click.option("-s", "--save", is_flag=True, help="Save responses to the file")
-def prompt(filepath, raw, save):
-    """Executes the prompt at the given filepath"""
-    prompt_command(filepath, raw, save)
-
-
-@main.command()
-@click.argument("filepath", type=str)
-def send(filepath, model, prompt):
-    """Send the contents of a file to the chatbot"""
-    send_command(filepath, model, prompt)
+@click.option("-u", "--update", is_flag=True, help="Save responses to the prompt file")
+@click.option(
+    "-s", "--stream", is_flag=True, help="Whether the response should be streamed."
+)
+def send(**kwargs):
+    """Sends the prompt at the given filepath"""
+    send_command(**kwargs)
 
 
 if __name__ == "__main__":

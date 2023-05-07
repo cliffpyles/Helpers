@@ -1,10 +1,19 @@
+# Filename: commands.py
+
 from utils import *
 from constants import *
 from views import *
 from lib.datastore import Datastore
 from pathlib import Path
 
-def ask_command(user_input, model, prompt):
+def ask_command(user_input, model, prompt, stream):
+    if (stream):
+        ask_command_async(user_input, model, prompt)
+    else:
+        ask_command_sync(user_input, model, prompt)
+
+
+def ask_command_sync(user_input, model, prompt):
     username, mac_address = get_user_information()
     prompt = load_prompt(prompt)
     model = model or prompt["model"]
@@ -17,18 +26,49 @@ def ask_command(user_input, model, prompt):
             "mac_address": mac_address,
             "content": user_input
         }
-        response_message = send_chat_message(
+        response_message = send_chat_message_sync(
             model=model,
             messages=messages,
             user_message=user_message
         )
         messages.append(user_message)
         messages.append(response_message)
+    
+    view_messages(messages)
+    
+
+def ask_command_async(user_input, model, prompt):
+    username, mac_address = get_user_information()
+    prompt = load_prompt(prompt)
+    model = model or prompt["model"]
+    messages = prompt["messages"]
 
     view_messages(messages)
 
+    if user_input:
+        user_message = {
+            "role": "user",
+            "name": username,
+            "mac_address": mac_address,
+            "content": user_input
+        }
+        response_generator = send_chat_message_async(
+            model=model,
+            messages=messages,
+            user_message=user_message
+        )
+        view_message(user_message)
+        view_response_stream(response_generator)
+    
 
-def conversation_command(conversation_name, model, prompt):
+def conversation_command(conversation_name, model, prompt, stream):
+    if stream:
+        conversation_command_async(conversation_name, model, prompt)
+    else:
+        conversation_command_sync(conversation_name, model, prompt)
+
+
+def conversation_command_async(conversation_name, model, prompt):
     username, mac_address = get_user_information()
     prompt = load_prompt(prompt)
     model = model or prompt["model"]
@@ -36,7 +76,18 @@ def conversation_command(conversation_name, model, prompt):
     conversation = Datastore(conversation_path)
     session = load_session(conversation)
     key_bindings = load_key_bindings()
-    view_conversation(conversation, key_bindings, mac_address, model, session, username)
+    view_conversation_async(conversation, key_bindings, mac_address, model, session, username)
+
+
+def conversation_command_sync(conversation_name, model, prompt):
+    username, mac_address = get_user_information()
+    prompt = load_prompt(prompt)
+    model = model or prompt["model"]
+    conversation_path = Path(CONVERSATIONS_DIR).expanduser() / f"{conversation_name}__{model}.json"
+    conversation = Datastore(conversation_path)
+    session = load_session(conversation)
+    key_bindings = load_key_bindings()
+    view_conversation_sync(conversation, key_bindings, mac_address, model, session, username)
 
 
 def delete_command(conversation_name, model, force):
@@ -109,7 +160,7 @@ def fork_command(source_conversation_name, new_conversation_name, model):
         click.echo(f"Error forking conversation: {e}")
 
 
-def send_command(filepath, model, prompt):
+def analyze_command(filepath, model, prompt):
     username, mac_address = get_user_information()
     prompt = load_prompt(prompt)
     model = model or prompt["model"]
@@ -123,7 +174,7 @@ def send_command(filepath, model, prompt):
             "mac_address": mac_address,
             "content": file_content
         }
-        response_message = send_chat_message(
+        response_message = send_chat_message_sync(
             model=model,
             messages=messages,
             user_message=user_message
@@ -133,10 +184,31 @@ def send_command(filepath, model, prompt):
     view_messages(messages)
 
 
-def prompt_command(filepath, raw, save):
+def send_command_async(filepath, raw, update):
     prompt = load_prompt(filepath=filepath)
-    response_message = send_chat(**prompt)
+    response_generator = send_chat_async(**prompt)
+    view_messages(prompt["messages"], raw)
+    content = view_response_stream(response_generator)
+    if (update):
+        prompt["messages"].append({
+            "role": "assistant",
+            "content": content
+        })
+        save_prompt(filepath=filepath, prompt=prompt)
+
+
+def send_command_sync(filepath, raw, update):
+    prompt = load_prompt(filepath=filepath)
+    response_message = send_chat_sync(**prompt)
     prompt["messages"].append(response_message)
-    if (save):
+    
+    if (update):
         save_prompt(filepath=filepath, prompt=prompt)
     view_messages(prompt["messages"], raw)
+
+
+def send_command(filepath, raw, update, stream):
+    if (stream):
+        send_command_async(filepath, raw, update)
+    else:
+        send_command_sync(filepath, raw, update)

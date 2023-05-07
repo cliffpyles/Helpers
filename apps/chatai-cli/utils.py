@@ -1,3 +1,5 @@
+# Filename: utils.py
+
 import json
 import openai
 import os
@@ -169,14 +171,21 @@ def serialize_message(message):
     return serialized_message
 
 
-def send_chat(**kwargs):
+def send_chat_sync(**kwargs):
     openai.api_key = os.environ["OPENAI_API_KEY"]
     response = openai.ChatCompletion.create(**kwargs)
 
     return response["choices"][0]["message"]
 
 
-def send_chat_message(model, messages, user_message):
+def send_chat_async(**kwargs):
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+    response_generator = openai.ChatCompletion.create(stream=True, **kwargs)
+    
+    return response_generator
+
+
+def send_chat_message_sync (model, messages, user_message):
     openai.api_key = os.environ["OPENAI_API_KEY"]
     messages_payload = []
     user = f"{user_message['mac_address']}::{user_message['name']}"
@@ -187,6 +196,20 @@ def send_chat_message(model, messages, user_message):
     response = openai.ChatCompletion.create(model=model, messages=messages_payload, user=user)
 
     return response["choices"][0]["message"]
+
+
+def send_chat_message_async(model, messages, user_message):
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+    messages_payload = []
+    user = f"{user_message['mac_address']}::{user_message['name']}"
+    for message in messages:
+        messages_payload.append(serialize_message(message))
+    if user_message:
+        messages_payload.append(serialize_message(user_message))
+    
+    response_generator = openai.ChatCompletion.create(model=model, messages=messages_payload, user=user, stream=True)
+
+    return response_generator
 
 
 def send_image(image_description, size):

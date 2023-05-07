@@ -1,5 +1,7 @@
 import rich_click as click
 from utils import *
+import time
+import io
 
 def view_conversations(conversation_files):
     conversations = []
@@ -15,7 +17,15 @@ def view_conversations(conversation_files):
             click.echo(f"Name: {conversation['name']} | Model: {conversation['model']}")
 
 
-def view_conversation(conversation, key_bindings, mac_address, model, session, username):
+def view_conversation_async(conversation, key_bindings, mac_address, model, session, username):
+    click.clear()
+    click.echo("Entering an interactive conversation.")
+    click.echo("Type 'exit' to end the conversation.")
+    view_messages(conversation.get_items())
+    view_message_input(conversation, key_bindings, mac_address, model, session, username)
+
+
+def view_conversation_sync(conversation, key_bindings, mac_address, model, session, username):
     click.clear()
     click.echo("Entering an interactive conversation.")
     click.echo("Type 'exit' to end the conversation.")
@@ -52,7 +62,7 @@ def view_message_input(conversation, key_bindings, mac_address, model, session, 
                     "mac_address": mac_address,
                 })
                 messages = conversation.get_items()
-                response_message = send_chat_message(model, messages, user_message)
+                response_message = send_chat_message_sync(model, messages, user_message)
                 assistant_message = response_message.to_dict_recursive()
                 conversation.create_item(assistant_message)
                 view_message(assistant_message)
@@ -69,9 +79,10 @@ def view_message(message, raw=False):
         click.secho(f"\n\n{MESSAGE_INDICATOR} Message ({message_id}):\n", bold=True)
     elif message["role"] == "system":
         click.secho(f"\n\n{SYSTEM_INDICATOR} System:\n", bold=True)
-    else:
+    elif message["role"] == "assistant":
         message_id = message.get("id", "None")
         click.secho(f"\n\n{RESPONSE_INDICATOR} Response ({message_id}):\n", bold=True)
+
     if raw:
         click.echo(message["content"])
     else:
@@ -82,6 +93,26 @@ def view_message(message, raw=False):
 def view_messages(messages, raw=False):
     for message in messages:
         view_message(message, raw)
+
+
+def view_response_stream(response_generator):
+    all_lines = ''
+    line = ''
+    for message in response_generator:
+        finish_reason = message["choices"][0]["finish_reason"]
+        if finish_reason == 'stop':
+            print(line)
+            break
+        else:
+            delta = message["choices"][0]["delta"]
+            content = delta.get('content', '')
+            line += content
+            all_lines += content
+            if '\n' in content:
+                print(line)
+                line = ''
+    return all_lines
+    
 
 
 def view_prompts(prompts):

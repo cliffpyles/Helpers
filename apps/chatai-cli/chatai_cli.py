@@ -55,7 +55,6 @@ def conversation(**kwargs):
     conversation_command(**kwargs)
 
 
-
 @main.command()
 @click.argument("conversation_name", type=str)
 @click.option(
@@ -111,26 +110,6 @@ def list(**kwargs):
 def models(**kwargs):
     """Show the available models"""
     models_command(**kwargs)
-
-
-@main.command()
-@click.argument("filepath", type=str)
-@click.option(
-    "-m",
-    "--model",
-    type=click.Choice(VALID_SEND_MODELS),
-    help=f"Language model to use. Valid models: {', '.join(VALID_SEND_MODELS)}",
-)
-@click.option(
-    "-p",
-    "--prompt",
-    type=str,
-    default="default",
-    help="Name of a preconfigured prompt to use",
-)
-def send(**kwargs):
-    """Send the contents of a file to the chatbot"""
-    send_command(**kwargs)
 
 
 @main.command()

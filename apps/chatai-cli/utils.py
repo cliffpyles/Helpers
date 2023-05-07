@@ -24,14 +24,6 @@ from tempfile import NamedTemporaryFile
 from constants import *
 
 
-def create_message(content, name, role, mac_address):
-    message = {"role": role, "content": content}
-    if name:
-        message["name"] = name
-
-    return message
-
-
 def execute_command(command_name, app_state):
     command_name = command_name[1:].lower()
     unknown_command = lambda: click.echo(f"Unrecognized command: {command_name}")

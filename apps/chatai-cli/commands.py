@@ -26,11 +26,12 @@ def ask_command_sync(user_input, model, prompt):
             "mac_address": mac_address,
             "content": user_input
         }
-        response_message = send_chat_message_sync(
+        get_api_data = lambda: send_chat_message_sync(
             model=model,
             messages=messages,
             user_message=user_message
         )
+        response_message = view_data_loader(fn=get_api_data)
         messages.append(user_message)
         messages.append(response_message)
     
@@ -199,9 +200,10 @@ def send_command_async(filepath, raw, update):
 
 def send_command_sync(filepath, raw, update):
     prompt = load_prompt(filepath=filepath)
-    response_message = send_chat_sync(**prompt)
+    get_api_data = lambda: send_chat_sync(**prompt)
+    response_message = view_data_loader(fn=get_api_data)
     prompt["messages"].append(response_message)
-    
+
     if (update):
         save_prompt(filepath=filepath, prompt=prompt)
     view_messages(prompt["messages"], raw)

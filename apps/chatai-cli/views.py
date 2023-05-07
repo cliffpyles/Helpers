@@ -1,7 +1,10 @@
-import rich_click as click
-from utils import *
+import random
 import time
-import io
+import rich
+import rich_click as click
+from rich.progress import Progress, TimeElapsedColumn, SpinnerColumn
+from utils import *
+
 
 def view_conversations(conversation_files):
     conversations = []
@@ -17,20 +20,28 @@ def view_conversations(conversation_files):
             click.echo(f"Name: {conversation['name']} | Model: {conversation['model']}")
 
 
-def view_conversation_async(conversation, key_bindings, mac_address, model, session, username):
+def view_conversation_async(
+    conversation, key_bindings, mac_address, model, session, username
+):
     click.clear()
     click.echo("Entering an interactive conversation.")
     click.echo("Type 'exit' to end the conversation.")
     view_messages(conversation.get_items())
-    view_message_input(conversation, key_bindings, mac_address, model, session, username)
+    view_message_input(
+        conversation, key_bindings, mac_address, model, session, username
+    )
 
 
-def view_conversation_sync(conversation, key_bindings, mac_address, model, session, username):
+def view_conversation_sync(
+    conversation, key_bindings, mac_address, model, session, username
+):
     click.clear()
     click.echo("Entering an interactive conversation.")
     click.echo("Type 'exit' to end the conversation.")
     view_messages(conversation.get_items())
-    view_message_input(conversation, key_bindings, mac_address, model, session, username)
+    view_message_input(
+        conversation, key_bindings, mac_address, model, session, username
+    )
 
 
 def view_image(image_description, image_url, size):
@@ -40,7 +51,9 @@ def view_image(image_description, image_url, size):
     render_image(image_url)
 
 
-def view_message_input(conversation, key_bindings, mac_address, model, session, username):
+def view_message_input(
+    conversation, key_bindings, mac_address, model, session, username
+):
     current_state = {"multiline_mode": False}
     while True:
         user_input = session.prompt(
@@ -55,12 +68,14 @@ def view_message_input(conversation, key_bindings, mac_address, model, session, 
             current_state = execute_command(user_input, current_state)
         elif len(user_input.strip()) > 0:
             try:
-                user_message = conversation.create_item({
-                    "role": "user",
-                    "name": username,
-                    "content": f"{user_input}",
-                    "mac_address": mac_address,
-                })
+                user_message = conversation.create_item(
+                    {
+                        "role": "user",
+                        "name": username,
+                        "content": f"{user_input}",
+                        "mac_address": mac_address,
+                    }
+                )
                 messages = conversation.get_items()
                 response_message = send_chat_message_sync(model, messages, user_message)
                 assistant_message = response_message.to_dict_recursive()
@@ -96,23 +111,34 @@ def view_messages(messages, raw=False):
 
 
 def view_response_stream(response_generator):
-    all_lines = ''
-    line = ''
+    all_lines = ""
+    line = ""
     for message in response_generator:
         finish_reason = message["choices"][0]["finish_reason"]
-        if finish_reason == 'stop':
+        if finish_reason == "stop":
             print(line)
             break
         else:
             delta = message["choices"][0]["delta"]
-            content = delta.get('content', '')
+            content = delta.get("content", "")
             line += content
             all_lines += content
-            if '\n' in content:
+            if "\n" in content:
                 print(line)
-                line = ''
+                line = ""
     return all_lines
-    
+
+
+def view_data_loader(fn, **kwargs):
+    with Progress(
+        SpinnerColumn(),
+        TimeElapsedColumn(),
+    ) as progress:
+        loading_task = progress.add_task("[green]Processing…", total=None)
+        response = fn()
+        progress.update(loading_task, completed=True, visible=False)
+
+    return response
 
 
 def view_prompts(prompts):

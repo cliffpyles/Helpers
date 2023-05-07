@@ -14,4 +14,4 @@
 - [ ] Add command for analyzing documents
 - [ ] Add ability to snapshot a specific state of a conversation
 - [ ] Add ability to perform tasks on files, and after each task the user can choose to apply or discard the proposed changes
-- [ ] Add an indicator to show it is working on a request
+- [x] Add an indicator to show it is working on a request

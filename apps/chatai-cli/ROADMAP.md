@@ -4,7 +4,6 @@
 
 - [x] Add support for prompts when using ask command
 - [x] Add support for indicator to show it is working on a request
-- [ ] Add documentation via README
 - [ ] Add conversation command to attach files to conversations
 - [ ] Add conversation command to delete messages and responses from conversations
 - [ ] Add conversation command for copying messages and responses to the clipboard
@@ -16,6 +15,7 @@
 - [ ] Add setting that enables logging for raw entries and responses for app
 - [ ] Add support for autocomplete of message and response IDs
 - [ ] Add support for analyzing and performing tasks on files, and after each task the user can choose to apply or discard the proposed changes
+- [ ] Add documentation via README
 
 ## Features to Consider
 

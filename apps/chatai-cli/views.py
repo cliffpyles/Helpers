@@ -3,7 +3,10 @@ import time
 import rich
 import rich_click as click
 from rich.progress import Progress, TimeElapsedColumn, SpinnerColumn
+from rich.console import Console
+from rich.markdown import Markdown
 from utils import *
+from constants import *
 
 
 def view_conversations(conversation_files):
@@ -66,8 +69,22 @@ def view_image(image_description, image_url, size):
 def view_message_input(
     conversation, key_bindings, mac_address, model, session, username
 ):
-    current_state = {"multiline_mode": False}
+    current_state = {
+        "mac_address": mac_address,
+        "model": model,
+        "multiline_mode": False,
+        "username": username,
+    }
+    
+
     while True:
+        if conversation.last_item().get("role") == "user":
+            messages = conversation.get_items()
+            response_message = send_messages_sync(model, messages)
+            assistant_message = response_message.to_dict_recursive()
+            conversation.add_item(assistant_message)
+            view_message(assistant_message)
+
         user_input = session.prompt(
             message=f"\n\n{MESSAGE_INDICATOR} New Message: ",
             key_bindings=key_bindings,
@@ -77,10 +94,16 @@ def view_message_input(
 
         # Execute the command if the input starts with a '/'
         if user_input.startswith("/"):
-            current_state = execute_command(user_input, current_state)
+            conversation, current_state, user_input = execute_conversation_command(
+                user_input,
+                conversation=conversation,
+                current_state=current_state,
+                user_input=user_input,
+            )
+
         elif len(user_input.strip()) > 0:
             try:
-                user_message = conversation.create_item(
+                user_message = conversation.add_item(
                     {
                         "role": "user",
                         "name": username,
@@ -91,7 +114,7 @@ def view_message_input(
                 messages = conversation.get_items()
                 response_message = send_chat_message_sync(model, messages, user_message)
                 assistant_message = response_message.to_dict_recursive()
-                conversation.create_item(assistant_message)
+                conversation.add_item(assistant_message)
                 view_message(assistant_message)
                 current_state["multiline_mode"] = False
 

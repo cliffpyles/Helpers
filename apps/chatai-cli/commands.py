@@ -1,10 +1,10 @@
 # Filename: commands.py
 
+from pathlib import Path
 from utils import *
 from constants import *
 from views import *
 from lib.datastore import Datastore
-from pathlib import Path
 
 def ask_command(user_input, model, prompt, raw, stream):
     if (stream):

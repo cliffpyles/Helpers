@@ -24,12 +24,12 @@ from tempfile import NamedTemporaryFile
 from constants import *
 
 
-def execute_command(command_name, app_state):
-    command_name = command_name[1:].lower()
+def execute_conversation_command(raw_command, **kwargs):
+    command_sections = raw_command.split(" ")
+    args = command_sections[1:]
+    command_name = command_sections[0][1:].lower()
     unknown_command = lambda: click.echo(f"Unrecognized command: {command_name}")
-    result = conversation_commands.get(command_name, unknown_command)(app_state)
-
-    return result
+    return conversation_commands.get(command_name, unknown_command)(command_name, args, **kwargs)
 
 
 def get_conversations_directory():
@@ -176,6 +176,17 @@ def send_chat_async(**kwargs):
     
     return response_generator
 
+
+def send_messages_sync (model, messages):
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+    messages_payload = []
+
+    for message in messages:
+        messages_payload.append(serialize_message(message))
+    
+    response = openai.ChatCompletion.create(model=model, messages=messages_payload)
+
+    return response["choices"][0]["message"]
 
 def send_chat_message_sync (model, messages, user_message):
     openai.api_key = os.environ["OPENAI_API_KEY"]

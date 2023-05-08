@@ -44,6 +44,18 @@ def view_conversation_sync(
     )
 
 
+def view_data_loader(fn, **kwargs):
+    with Progress(
+        SpinnerColumn(),
+        TimeElapsedColumn(),
+    ) as progress:
+        loading_task = progress.add_task("[green]Processing…", total=None)
+        response = fn()
+        progress.update(loading_task, completed=True, visible=False)
+
+    return response
+
+
 def view_image(image_description, image_url, size):
     render_text(f"Description: {image_description}\n")
     render_text(f"Size: {size}x{size}\n")
@@ -110,37 +122,6 @@ def view_messages(messages, raw=False):
         view_message(message, raw)
 
 
-def view_response_stream(response_generator):
-    all_lines = ""
-    line = ""
-    for message in response_generator:
-        finish_reason = message["choices"][0]["finish_reason"]
-        if finish_reason == "stop":
-            print(line)
-            break
-        else:
-            delta = message["choices"][0]["delta"]
-            content = delta.get("content", "")
-            line += content
-            all_lines += content
-            if "\n" in content:
-                print(line)
-                line = ""
-    return all_lines
-
-
-def view_data_loader(fn, **kwargs):
-    with Progress(
-        SpinnerColumn(),
-        TimeElapsedColumn(),
-    ) as progress:
-        loading_task = progress.add_task("[green]Processing…", total=None)
-        response = fn()
-        progress.update(loading_task, completed=True, visible=False)
-
-    return response
-
-
 def view_prompts(prompts):
     if not prompts:
         click.echo("No available prompts.")
@@ -165,3 +146,25 @@ def view_prompts(prompts):
             content += "\n\n"
 
         click.echo_via_pager(content)
+
+
+def view_response_stream(response_generator, raw=False):
+    console = Console()
+    all_lines = ""
+    line = ""
+    if not raw:
+        click.secho(f"\n\n{RESPONSE_INDICATOR} Response:\n", bold=True)
+    for message in response_generator:
+        finish_reason = message["choices"][0]["finish_reason"]
+        if finish_reason == "stop":
+            click.echo(line)
+            break
+        else:
+            delta = message["choices"][0]["delta"]
+            content = delta.get("content", "")
+            line += content
+            all_lines += content
+            if "\n" in content:
+                click.echo(line)
+                line = ""
+    return all_lines

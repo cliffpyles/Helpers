@@ -6,60 +6,66 @@ from views import *
 from lib.datastore import Datastore
 from pathlib import Path
 
-def ask_command(user_input, model, prompt, stream):
+def ask_command(user_input, model, prompt, raw, stream):
     if (stream):
-        ask_command_async(user_input, model, prompt)
+        ask_command_async(user_input, model, prompt, raw)
     else:
-        ask_command_sync(user_input, model, prompt)
+        ask_command_sync(user_input, model, prompt, raw)
 
 
-def ask_command_sync(user_input, model, prompt):
+def ask_command_sync(user_input, model, prompt, raw):
     username, mac_address = get_user_information()
     prompt = load_prompt(prompt)
     model = model or prompt["model"]
     messages = prompt["messages"]
+    user_message = {
+        "role": "user",
+        "name": username,
+        "mac_address": mac_address,
+        "content": user_input
+    }
+    get_api_data = lambda: send_chat_message_sync(
+        model=model,
+        messages=messages,
+        user_message=user_message
+    )
+    if raw:
+        response_message = get_api_data()
+        click.echo(response_message["content"])
+    else:
+        response_message = view_data_loader(fn=get_api_data)
+        messages.append(user_message)
+        messages.append(response_message)
+        view_messages(messages)
+    
 
-    if user_input:
-        user_message = {
-            "role": "user",
-            "name": username,
-            "mac_address": mac_address,
-            "content": user_input
-        }
-        get_api_data = lambda: send_chat_message_sync(
+def ask_command_async(user_input, model, prompt, raw):
+    username, mac_address = get_user_information()
+    prompt = load_prompt(prompt)
+    model = model or prompt["model"]
+    messages = prompt["messages"]
+    user_message = {
+        "role": "user",
+        "name": username,
+        "mac_address": mac_address,
+        "content": user_input
+    }
+    if (raw):
+        response_generator = send_chat_message_async(
             model=model,
             messages=messages,
             user_message=user_message
         )
-        response_message = view_data_loader(fn=get_api_data)
-        messages.append(user_message)
-        messages.append(response_message)
-    
-    view_messages(messages)
-    
-
-def ask_command_async(user_input, model, prompt):
-    username, mac_address = get_user_information()
-    prompt = load_prompt(prompt)
-    model = model or prompt["model"]
-    messages = prompt["messages"]
-
-    view_messages(messages)
-
-    if user_input:
-        user_message = {
-            "role": "user",
-            "name": username,
-            "mac_address": mac_address,
-            "content": user_input
-        }
+        view_response_stream(response_generator, raw=raw)
+    else:
+        view_messages(messages)
         response_generator = send_chat_message_async(
             model=model,
             messages=messages,
             user_message=user_message
         )
         view_message(user_message)
-        view_response_stream(response_generator)
+        view_response_stream(response_generator, raw=raw)
     
 
 def conversation_command(conversation_name, model, prompt, stream):

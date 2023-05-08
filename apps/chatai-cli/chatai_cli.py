@@ -10,7 +10,7 @@ def main():
 
 
 @main.command()
-@click.argument("user_input", type=str, required=False)
+@click.argument("user_input", type=str, required=True)
 @click.option(
     "-m",
     "--model",
@@ -24,12 +24,13 @@ def main():
     default="default",
     help="Name of a preconfigured prompt to use",
 )
+@click.option("-r", "--raw", is_flag=True, help="Show the raw content")
 @click.option(
     "-s", "--stream", is_flag=True, help="Whether the response should be streamed."
 )
-def ask(**kwargs):
+def ask(user_input, **kwargs):
     """Ask a single question to the chatbot"""
-    ask_command(**kwargs)
+    ask_command(user_input, **kwargs)
 
 
 @main.command()

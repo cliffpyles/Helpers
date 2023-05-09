@@ -3,8 +3,8 @@ from pathlib import Path
 
 
 def attach_file_command(command_name, args, conversation, current_state, user_input):
-    for arg in args:
-        file = Path(arg).expanduser()
+    for filepath in args:
+        file = Path(filepath).expanduser()
         file_content = file.read_text()
         user_message = conversation.add_item({
             "role": "user",
@@ -12,6 +12,13 @@ def attach_file_command(command_name, args, conversation, current_state, user_in
             "content": file_content,
             "mac_address": current_state["mac_address"]
         })
+
+    return conversation, current_state, user_input
+
+
+def remove_message_command(command_name, args, conversation, current_state, user_input):
+    for message_id in args:
+        removed_item = conversation.remove_item(message_id)
 
     return conversation, current_state, user_input
 
@@ -28,6 +35,8 @@ def exit_command(command_name, args, conversation, current_state, user_input):
 
 conversation_commands = {
     "attach": attach_file_command,
+    "delete": remove_message_command,
     "exit": exit_command,
-    "multi": enable_multiline_command
+    "multi": enable_multiline_command,
+    "remove": remove_message_command,
 }

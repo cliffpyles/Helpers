@@ -4,8 +4,8 @@
 
 - [x] Add support for prompts when using ask command
 - [x] Add support for indicator to show it is working on a request
-- [ ] Add conversation command to attach files to conversations
-- [ ] Add conversation command to delete messages and responses from conversations
+- [x] Add conversation command to attach files to conversations
+- [x] Add conversation command to delete messages and responses from conversations
 - [ ] Add conversation command for copying messages and responses to the clipboard
 - [ ] Add conversation command to snapshot a specific state of a conversation
 - [ ] Add conversation commands to apply and discard specific messages (request and/or response) to the current prompt's source file

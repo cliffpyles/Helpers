@@ -23,52 +23,29 @@ def view_conversations(conversation_files):
             click.echo(f"Name: {conversation['name']} | Model: {conversation['model']}")
 
 
-def view_conversation_async(
-    conversation, key_bindings, mac_address, model, session, username
-):
-    click.clear()
-    click.echo("Entering an interactive conversation.")
-    click.echo("Type 'exit' to end the conversation.")
-    view_messages(conversation.get_items())
-    view_message_input(
-        conversation, key_bindings, mac_address, model, session, username
-    )
-
-
 def view_conversation_sync(
     conversation, key_bindings, mac_address, model, session, username
 ):
-    click.clear()
-    click.echo("Entering an interactive conversation.")
-    click.echo("Type 'exit' to end the conversation.")
+    def view_conversation_banner():
+        click.clear()
+        click.echo("Entering an interactive conversation.")
+        click.echo("Type 'exit' to end the conversation.")
+    
+    def on_after_add_item(new_message):
+        print("on after add item")
+        view_message(new_message)
+    
+    def on_after_remove_item(item):
+        print("on after remove item")
+        view_conversation_banner()
+        view_messages(conversation.get_items())
+
+    conversation.register_event_hook("after", "add_item", on_after_add_item)
+    conversation.register_event_hook("after", "remove_item", on_after_remove_item)
+
+    view_conversation_banner()
     view_messages(conversation.get_items())
-    view_message_input(
-        conversation, key_bindings, mac_address, model, session, username
-    )
 
-
-def view_data_loader(fn, **kwargs):
-    with Progress(
-        SpinnerColumn(),
-        TimeElapsedColumn(),
-    ) as progress:
-        loading_task = progress.add_task("[green]Processing…", total=None)
-        response = fn()
-        progress.update(loading_task, completed=True, visible=False)
-
-    return response
-
-
-def view_image(image_description, image_url, size):
-    render_text(f"Description: {image_description}\n")
-    render_text(f"Size: {size}x{size}\n")
-    render_text(f"Preview URL: {image_url}\n")
-    render_image(image_url)
-
-
-def view_message_input(
-    conversation, key_bindings, mac_address, model, session, username
-):
     current_state = {
         "mac_address": mac_address,
         "model": model,
@@ -78,12 +55,12 @@ def view_message_input(
     
 
     while True:
-        if conversation.last_item().get("role") == "user":
-            messages = conversation.get_items()
-            response_message = send_messages_sync(model, messages)
-            assistant_message = response_message.to_dict_recursive()
-            conversation.add_item(assistant_message)
-            view_message(assistant_message)
+
+        # if conversation.last_item().get("role") == "user":
+        #     messages = conversation.get_items()
+        #     response_message = send_messages_sync(model, messages)
+        #     assistant_message = response_message.to_dict_recursive()
+        #     conversation.add_item(assistant_message)
 
         user_input = session.prompt(
             message=f"\n\n{MESSAGE_INDICATOR} New Message: ",
@@ -115,12 +92,31 @@ def view_message_input(
                 response_message = send_chat_message_sync(model, messages, user_message)
                 assistant_message = response_message.to_dict_recursive()
                 conversation.add_item(assistant_message)
-                view_message(assistant_message)
                 current_state["multiline_mode"] = False
 
             except Exception as e:
                 click.echo(f"Error: {e}")
 
+
+
+def view_data_loader(fn, **kwargs):
+    with Progress(
+        SpinnerColumn(),
+        TimeElapsedColumn(),
+    ) as progress:
+        loading_task = progress.add_task("[green]Processing…", total=None)
+        response = fn()
+        progress.update(loading_task, completed=True, visible=False)
+
+    return response
+
+
+def view_image(image_description, image_url, size):
+    render_text(f"Description: {image_description}\n")
+    render_text(f"Size: {size}x{size}\n")
+    render_text(f"Preview URL: {image_url}\n")
+    render_image(image_url)
+    
 
 def view_message(message, raw=False):
     console = Console()

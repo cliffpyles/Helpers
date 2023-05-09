@@ -2,6 +2,7 @@ import json
 import os
 import uuid
 from datetime import datetime
+from copy import deepcopy
 
 def merge_dicts(dict1, dict2):
     """Recursively merge two dictionaries."""
@@ -16,6 +17,24 @@ class Datastore:
     def __init__(self, file_name):
         self.file_name = file_name
         self.objects = self.load_items()
+        self.event_hooks = {
+            'before': {},
+            'after': {}
+        }
+
+    def register_event_hook(self, hook_type, operation, callback):
+        if hook_type not in self.event_hooks:
+            raise ValueError(f"Invalid hook_type: {hook_type}. Must be 'before' or 'after'.")
+        
+        if operation not in self.event_hooks[hook_type]:
+            self.event_hooks[hook_type][operation] = []
+
+        self.event_hooks[hook_type][operation].append(callback)
+
+    def execute_event_hooks(self, hook_type, operation, *args, **kwargs):
+        if operation in self.event_hooks[hook_type]:
+            for callback in self.event_hooks[hook_type][operation]:
+                callback(*args, **kwargs)
 
     def load_items(self):
         if os.path.exists(self.file_name):
@@ -29,12 +48,14 @@ class Datastore:
             json.dump(self.objects, file)
 
     def add_item(self, obj):
+        self.execute_event_hooks('before', 'add_item', obj)
         obj['id'] = str(uuid.uuid4())
         current_time = datetime.now().isoformat()
         obj['created_at'] = current_time
         obj['updated_at'] = current_time
         self.objects.append(obj)
         self.save_items()
+        self.execute_event_hooks('after', 'add_item', obj)
         return obj
 
     def get_items(self):
@@ -47,11 +68,12 @@ class Datastore:
                 current_item = obj
                 break
         return current_item
-    
+
     def last_item(self):
         return self.objects[-1]
 
     def update_item(self, id, updates):
+        self.execute_event_hooks('before', 'update_item', id, updates)
         current_item = None
         for index, obj in enumerate(self.objects):
             if obj['id'] == id:
@@ -63,18 +85,20 @@ class Datastore:
                 self.save_items()
                 current_item = updated_obj
                 break
+        self.execute_event_hooks('after', 'update_item', current_item)
         return current_item
 
-    def delete_item(self, id):
-        current_item = None
+    def remove_item(self, id):
+        self.execute_event_hooks('before', 'remove_item', id)
+        deleted_item = None
         for index, obj in enumerate(self.objects):
             if obj['id'] == id:
-                deleted_item = self.objects[index]
+                deleted_item = deepcopy(self.objects[index])
                 del self.objects[index]
                 self.save_items()
-                current_item = deleted_item
                 break
-        return current_item
+        self.execute_event_hooks('after', 'remove_item', deleted_item)
+        return deleted_item
 
     def search_items(self, query):
         return [obj for obj in self.objects if query in str(obj)]

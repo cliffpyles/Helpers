@@ -90,7 +90,13 @@ def view_conversation_sync(
                     }
                 )
                 messages = conversation.get_items()
-                response_message = send_chat_message_sync(model, messages, user_message)
+                get_api_data = lambda: send_chat_message_sync(
+                    model=model,
+                    messages=messages,
+                    user_message=user_message
+                )
+                # response_message = send_chat_message_sync(model, messages, user_message)
+                response_message = view_data_loader(fn=get_api_data)
                 assistant_message = response_message.to_dict_recursive()
                 conversation.add_item(assistant_message)
                 current_state["multiline_mode"] = False

@@ -32,11 +32,9 @@ def view_conversation_sync(
         click.echo("Type 'exit' to end the conversation.")
     
     def on_after_add_item(new_message):
-        print("on after add item")
         view_message(new_message)
     
     def on_after_remove_item(item):
-        print("on after remove item")
         view_conversation_banner()
         view_messages(conversation.get_items())
 

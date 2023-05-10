@@ -75,7 +75,10 @@ def view_conversation_sync(
                 current_state=current_state,
                 user_input=user_input,
             )
-
+            if "notifications" in current_state:
+                for notification in current_state["notifications"]:
+                    click.echo(notification)
+                del current_state["notifications"]
         elif len(user_input.strip()) > 0:
             try:
                 user_message = conversation.add_item(

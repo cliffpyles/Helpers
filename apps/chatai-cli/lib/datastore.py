@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 from copy import deepcopy
 
+
 def merge_dicts(dict1, dict2):
     """Recursively merge two dictionaries."""
     for key, value in dict2.items():
@@ -12,6 +13,7 @@ def merge_dicts(dict1, dict2):
         else:
             dict1[key] = value
     return dict1
+
 
 class Datastore:
     def __init__(self, file_name):
@@ -58,8 +60,31 @@ class Datastore:
         self.execute_event_hooks('after', 'add_item', obj)
         return obj
 
-    def get_items(self):
-        return self.objects
+    def get_items(self, ids=None):
+        if not ids:
+            return self.objects
+
+        if isinstance(ids, list):
+            return [obj for obj in self.objects if obj['id'] in ids]
+
+        elif isinstance(ids, str):
+            start_id, end_id = ids.split(":", 1) if ":" in ids else (ids, None)
+            start_index = next((index for index, obj in enumerate(self.objects) if obj['id'] == start_id), None)
+            end_index = next((index for index, obj in enumerate(self.objects) if obj['id'] == end_id), None) if end_id else None
+
+            if start_index is None:
+                raise ValueError(f"Invalid start ID: {start_id}")
+
+            if end_id and end_index is None:
+                raise ValueError(f"Invalid end ID: {end_id}")
+
+            if end_index:
+                return self.objects[start_index:end_index + 1]
+            else:
+                return self.objects[start_index:]
+            
+        else:
+            raise TypeError("Invalid argument type for ids. Must be a list or string.")
 
     def get_item(self, id):
         current_item = None

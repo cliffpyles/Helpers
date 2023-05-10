@@ -6,7 +6,7 @@
 - [x] Add support for indicator to show it is working on a request
 - [x] Add conversation command to attach files to conversations
 - [x] Add conversation command to delete messages and responses from conversations
-- [ ] Add conversation command for copying messages and responses to the clipboard
+- [x] Add conversation command for copying messages and responses to the clipboard
 - [ ] Add conversation command to snapshot a specific state of a conversation
 - [ ] Add CLI commands for managing settings in the global settings file (CRUDL operations)
 - [ ] Add conversation commands to apply and discard specific messages (request and/or response) to the current prompt's source file

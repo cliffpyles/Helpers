@@ -166,5 +166,6 @@ conversation_commands = {
     "exit": exit_command,
     "multi": enable_multiline_command,
     "remove": remove_message_command,
-    "snapshot": snapshot_command
+    "snapshot": snapshot_command,
+    "snapshots": snapshot_command
 }

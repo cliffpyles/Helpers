@@ -5,6 +5,9 @@ import rich_click as click
 from rich.progress import Progress, TimeElapsedColumn, SpinnerColumn
 from rich.console import Console
 from rich.markdown import Markdown
+from rich import print
+from rich.panel import Panel
+from rich.table import Table
 from utils import *
 from constants import *
 
@@ -156,30 +159,25 @@ def view_prompts(prompts):
     if not prompts:
         click.echo("No available prompts.")
     else:
-        content = "Available Prompts:\n\n"
+        prompts = sorted(prompts, key=lambda i: i['keys'][0])
+        console = Console()
+        table = Table(title="Prompts")
+        table.add_column("Name", no_wrap=True)
+        table.add_column("Aliases")
+        table.add_column("Model")
+        table.add_column("System Context")
         for prompt in prompts:
             keys = prompt.get("keys")
             model = prompt.get("model")
             messages = prompt.get("messages")
-
-            content += indent_text(f"Name: {keys[0]}", max_width=120)
-            content += "\n\n"
-            content += indent_text(f"Aliases: {', '.join(keys[1:])}", max_width=120)
-            content += "\n\n"
-            content += indent_text(f"Default Model: {model}", max_width=120)
-            content += "\n\n"
-            content += indent_text(
-                f"System Context:\n{messages[0]['content']}", max_width=120
-            )
-            content += "\n\n"
-            content += indent_text("-" * 40)
-            content += "\n\n"
-
-        click.echo_via_pager(content)
+            system_context = messages[0]['content']
+            name = keys[0]
+            aliases = ', '.join(keys[1:])
+            table.add_row(name, aliases, model, system_context)
+        console.print(table)
 
 
 def view_response_stream(response_generator, raw=False):
-    console = Console()
     all_lines = ""
     line = ""
     if not raw:

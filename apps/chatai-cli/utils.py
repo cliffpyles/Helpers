@@ -168,8 +168,11 @@ def send_messages_sync(model, messages):
         messages_payload.append(serialize_message(message))
 
     response = openai.ChatCompletion.create(model=model, messages=messages_payload)
+    message = response["choices"][0]["message"]
 
-    return response["choices"][0]["message"]
+    message["usage"] = response["usage"]
+    return message
+
 
 def send_chat_message_sync(model, messages, user_message):
     openai.api_key = os.environ["OPENAI_API_KEY"]
@@ -180,8 +183,9 @@ def send_chat_message_sync(model, messages, user_message):
     if user_message:
         messages_payload.append(serialize_message(user_message))
     response = openai.ChatCompletion.create(model=model, messages=messages_payload, user=user)
-
-    return response["choices"][0]["message"]
+    message = response["choices"][0]["message"]
+    message["usage"] = response["usage"]
+    return message
 
 
 def send_chat_message_async(model, messages, user_message):

@@ -39,13 +39,13 @@ def view_conversation_sync(
     
     def on_after_remove_item(item):
         view_conversation_banner()
-        view_messages(conversation.get_items())
+        view_messages(conversation.get_items(), model)
 
     conversation.register_event_hook("after", "add_item", on_after_add_item)
     conversation.register_event_hook("after", "remove_item", on_after_remove_item)
 
     view_conversation_banner()
-    view_messages(conversation.get_items())
+    view_messages(conversation.get_items(), model)
 
     current_state = {
         "mac_address": mac_address,
@@ -112,7 +112,6 @@ def view_conversation_sync(
                 click.echo(f"Error: {e}")
 
 
-
 def view_data_loader(fn, **kwargs):
     with Progress(
         SpinnerColumn(),
@@ -132,7 +131,7 @@ def view_image(image_description, image_url, size):
     render_image(image_url)
     
 
-def view_message(message, raw=False):
+def view_message(message, model='Unknown', raw=False):
     console = Console()
     if message["role"] == "user":
         message_id = message.get("id", "None")
@@ -149,10 +148,39 @@ def view_message(message, raw=False):
         markdown = Markdown(message["content"])
         console.print(markdown)
 
+    if message["role"] == "assistant":
+        click.echo("")
+        click.secho(f"{DETAILS_INDICATOR} model: ", nl=False)
+        click.secho(f"{model}", nl=False)
 
-def view_messages(messages, raw=False):
+    if "usage" in message:
+        prompt_tokens = message.get("usage").get("prompt_tokens")
+        completion_tokens = message.get("usage").get("completion_tokens")
+        total_tokens = message.get("usage").get("total_tokens")
+        token_limits = {
+            "gpt-3.5-turbo": "4096",
+            "gpt-4": "8192"
+        }
+        token_limit = token_limits.get(model, 'Unknown')
+        click.secho(" | message: ", nl=False)
+        click.secho(f"{prompt_tokens}", nl=False)
+        click.secho(" tokens", nl=False)
+
+        click.secho(" | response: ", nl=False)
+        click.secho(f"{completion_tokens}", nl=False)
+        click.secho(" tokens", nl=False)
+
+        click.secho(" | total: ", nl=False)
+        click.secho(f"{total_tokens}", nl=False)
+        click.secho("/", nl=False)
+        click.secho(f"{token_limit}", nl=False)
+        click.secho(" tokens", nl=False)
+        click.echo("\n\n")
+
+
+def view_messages(messages, model='Unknown', raw=False):
     for message in messages:
-        view_message(message, raw)
+        view_message(message, model, raw)
 
 
 def view_prompts(prompts):
@@ -175,7 +203,6 @@ def view_prompts(prompts):
             aliases = ', '.join(keys[1:])
             table.add_row(name, aliases, model, system_context)
         console.print(table)
-
 
 def view_response_stream(response_generator, raw=False):
     all_lines = ""

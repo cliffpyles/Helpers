@@ -36,8 +36,8 @@ def ask_command_sync(user_input, model, prompt, raw):
         response_message = view_data_loader(fn=get_api_data)
         messages.append(user_message)
         messages.append(response_message)
-        view_messages(messages)
-    
+        view_messages(messages, model)
+
 
 def ask_command_async(user_input, model, prompt, raw):
     username, mac_address = get_user_information()
@@ -58,13 +58,13 @@ def ask_command_async(user_input, model, prompt, raw):
         )
         view_response_stream(response_generator, raw=raw)
     else:
-        view_messages(messages)
+        view_messages(messages, model)
         response_generator = send_chat_message_async(
             model=model,
             messages=messages,
             user_message=user_message
         )
-        view_message(user_message)
+        view_message(messages, model)
         view_response_stream(response_generator, raw=raw)
     
 
@@ -179,7 +179,7 @@ def analyze_command(filepath, model, prompt):
             "mac_address": mac_address,
             "content": file_content
         }
-        response_message = send_chat_message_sync(
+        response_message, usage = send_chat_message_sync(
             model=model,
             messages=messages,
             user_message=user_message

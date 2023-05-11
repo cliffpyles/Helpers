@@ -54,7 +54,6 @@ def load_session(conversation):
     for message in conversation.get_items():
         if message["role"] == "user":
             session.history.append_string(message["content"])
-
     return session
 
 
@@ -106,7 +105,6 @@ def load_prompts():
 
 def open_conversation(conversation_path, messages):
     conversation = []
-
     if conversation_path.is_file():
         file_content = json.loads(conversation_path.read_text())
         conversation = file_content
@@ -115,7 +113,6 @@ def open_conversation(conversation_path, messages):
         for message in messages:
             message["id"] = str(uuid.uuid4())
             conversation.append(message)
-
         conversation_path.touch()
         conversation_path.write_text(json.dumps(conversation))
 
@@ -159,22 +156,22 @@ def send_chat_sync(**kwargs):
 def send_chat_async(**kwargs):
     openai.api_key = os.environ["OPENAI_API_KEY"]
     response_generator = openai.ChatCompletion.create(stream=True, **kwargs)
-    
+
     return response_generator
 
 
-def send_messages_sync (model, messages):
+def send_messages_sync(model, messages):
     openai.api_key = os.environ["OPENAI_API_KEY"]
     messages_payload = []
 
     for message in messages:
         messages_payload.append(serialize_message(message))
-    
+
     response = openai.ChatCompletion.create(model=model, messages=messages_payload)
 
     return response["choices"][0]["message"]
 
-def send_chat_message_sync (model, messages, user_message):
+def send_chat_message_sync(model, messages, user_message):
     openai.api_key = os.environ["OPENAI_API_KEY"]
     messages_payload = []
     user = f"{user_message['mac_address']}::{user_message['name']}"
@@ -195,7 +192,7 @@ def send_chat_message_async(model, messages, user_message):
         messages_payload.append(serialize_message(message))
     if user_message:
         messages_payload.append(serialize_message(user_message))
-    
+
     response_generator = openai.ChatCompletion.create(model=model, messages=messages_payload, user=user, stream=True)
 
     return response_generator

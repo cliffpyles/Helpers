@@ -7,6 +7,7 @@ import pytz
 import shutil
 import tzlocal
 
+
 def attach_file_command(command_name, args, conversation, current_state, user_input):
     for filepath in args:
         file = Path(filepath).expanduser()
@@ -114,7 +115,7 @@ def snapshot_command(command_name, args, conversation, current_state, user_input
                 if snapshot.stem == snapshot_name:
                     selected_snapshot = snapshot
                     break
-            
+
         if selected_snapshot:
             shutil.copyfile(str(selected_snapshot), str(conversation_file_path))
             current_state["notifications"] = [f"Rollback to {selected_snapshot.stem} complete"]
@@ -134,7 +135,7 @@ def snapshot_command(command_name, args, conversation, current_state, user_input
                 if snapshot.stem == snapshot_name:
                     selected_snapshot = snapshot
                     break
-            
+
         if selected_snapshot:
             selected_snapshot.unlink()
             current_state["notifications"] = [f"Rollback {selected_snapshot.stem} deleted"]
@@ -155,6 +156,12 @@ def snapshot_command(command_name, args, conversation, current_state, user_input
     return conversation, current_state, user_input
 
 
+def unknown_command(command_name, args, conversation, current_state, user_input):
+    current_state["warnings"] = [f"{command_name} is not a recognized command"]
+
+    return conversation, current_state, user_input
+
+
 conversation_commands = {
     "attach": attach_file_command,
     "copy": copy_to_clipboard,
@@ -163,5 +170,6 @@ conversation_commands = {
     "multi": enable_multiline_command,
     "remove": remove_message_command,
     "snapshot": snapshot_command,
-    "snapshots": snapshot_command
+    "snapshots": snapshot_command,
+    "unknown": unknown_command
 }

@@ -75,9 +75,13 @@ def view_conversation_sync(
                 current_state=current_state,
                 user_input=user_input,
             )
+            if "warnings" in current_state:
+                for warning in current_state["warnings"]:
+                    click.secho(warning, fg="yellow")
+                del current_state["warnings"]
             if "notifications" in current_state:
                 for notification in current_state["notifications"]:
-                    click.echo(notification)
+                    click.secho(notification, fg="blue")
                 del current_state["notifications"]
         elif len(user_input.strip()) > 0:
             try:

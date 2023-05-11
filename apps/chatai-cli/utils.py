@@ -9,27 +9,24 @@ import shutil
 import subprocess
 import textwrap
 import uuid
-import webbrowser
 import yaml
 from conversation_commands import conversation_commands
-from InquirerPy import inquirer
-from InquirerPy.validator import NumberValidator
 from pathlib import Path
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.key_binding import KeyBindings
-from rich.console import Console
-from rich.markdown import Markdown
-from tempfile import NamedTemporaryFile
-from constants import *
 
 
 def execute_conversation_command(raw_command, **kwargs):
-    command_sections = raw_command.split(" ")
-    args = command_sections[1:]
-    command_name = command_sections[0][1:].lower()
-    unknown_command = lambda: click.echo(f"Unrecognized command: {command_name}")
-    return conversation_commands.get(command_name, unknown_command)(command_name, args, **kwargs)
+    try:
+        command_sections = raw_command.strip().split(" ")
+        args = command_sections[1:]
+        command_name = command_sections[0][1:].lower()
+        unknown_command = conversation_commands.get("unknown")
+        conversation_command = conversation_commands.get(command_name, unknown_command)
+        return conversation_command(command_name, args, **kwargs)
+    except TypeError as err:
+        print("Error executing conversation command", err)
 
 
 def get_conversations_directory():

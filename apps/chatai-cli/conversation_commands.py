@@ -81,8 +81,7 @@ def snapshot_command(command_name, args, conversation, current_state, user_input
     def timestamp_to_human(timestamp, timezone):
         dt = datetime.datetime.fromtimestamp(timestamp, pytz.timezone(timezone))
 
-        return dt.strftime('%Y-%m-%d %H:%M:%S %Z%z')
-
+        return dt.strftime('%B %d, %Y %H:%M:%S %Z')
 
     def create_snapshot():
         current_timestamp = int(time.time())
@@ -91,7 +90,6 @@ def snapshot_command(command_name, args, conversation, current_state, user_input
         shutil.copyfile(str(conversation_file_path), str(snapshot_path))
 
         current_state["notifications"] = [f"snapshot created: {snapshot_path.stem}"]
-
 
     def list_snapshots():
         conversation_file_path = Path(conversation.file_name)
@@ -102,7 +100,6 @@ def snapshot_command(command_name, args, conversation, current_state, user_input
             timestamp = snapshot.suffixes[-2][1:]
             formatted_timestamp = timestamp_to_human(int(timestamp), "America/New_York")
             current_state["notifications"].append(f"{snapshot.stem} ({formatted_timestamp})\n")
-
 
     def rollback_to_snapshot():
         snapshot_name = "latest" if len(args) < 2 else args[1]
@@ -123,7 +120,6 @@ def snapshot_command(command_name, args, conversation, current_state, user_input
             current_state["notifications"] = [f"Rollback to {selected_snapshot.stem} complete"]
         else:
             current_state["notifications"] = ["No matching rollbacks found"]
-
 
     def delete_snapshot():
         snapshot_name = "latest" if len(args) < 2 else args[1]

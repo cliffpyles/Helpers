@@ -146,9 +146,8 @@ def models_command():
 
 
 def fork_command(source_conversation_name, new_conversation_name, model):
-    source_conversation_file = get_conversation_path(source_conversation_name, model)
-    new_conversation_file = get_conversation_path(new_conversation_name, model)
-
+    source_conversation_file = Path(CONVERSATIONS_DIR).expanduser() / f"{source_conversation_name}__{model}.json"
+    new_conversation_file = Path(CONVERSATIONS_DIR).expanduser() / f"{new_conversation_name}__{model}.json"
     if not source_conversation_file.is_file():
         click.echo(f"Source conversation file not found: {source_conversation_file}")
         return
@@ -171,7 +170,6 @@ def analyze_command(filepath, model, prompt):
     username, mac_address = get_user_information()
     prompt = load_prompt(prompt)
     model = model or prompt["model"]
-    username, mac_address = get_user_information()
     messages = prompt["messages"]
     file_content = Path(filepath).read_text()
     if file_content:

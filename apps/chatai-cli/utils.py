@@ -7,7 +7,6 @@ import requests
 import rich_click as click
 import shutil
 import subprocess
-import textwrap
 import uuid
 import yaml
 from conversation_commands import conversation_commands
@@ -44,16 +43,6 @@ def get_user_information():
     username = os.getlogin()
     mac_address = hex(uuid.getnode())
     return username, mac_address
-
-
-def indent_text(text, spaces=4, max_width=None):
-    if max_width is not None:
-        text = textwrap.fill(text, max_width)
-
-    indentation = " " * spaces
-    indented_lines = [indentation + line for line in text.splitlines()]
-    indented_text = "\n".join(indented_lines)
-    return indented_text
 
 
 def load_key_bindings():

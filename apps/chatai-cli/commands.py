@@ -6,8 +6,9 @@ from constants import *
 from views import *
 from lib.datastore import Datastore
 
+
 def ask_command(user_input, model, prompt, raw, stream):
-    if (stream):
+    if stream:
         ask_command_async(user_input, model, prompt, raw)
     else:
         ask_command_sync(user_input, model, prompt, raw)
@@ -22,12 +23,10 @@ def ask_command_sync(user_input, model, prompt, raw):
         "role": "user",
         "name": username,
         "mac_address": mac_address,
-        "content": user_input
+        "content": user_input,
     }
     get_api_data = lambda: send_chat_message_sync(
-        model=model,
-        messages=messages,
-        user_message=user_message
+        model=model, messages=messages, user_message=user_message
     )
     if raw:
         response_message = get_api_data()
@@ -48,25 +47,21 @@ def ask_command_async(user_input, model, prompt, raw):
         "role": "user",
         "name": username,
         "mac_address": mac_address,
-        "content": user_input
+        "content": user_input,
     }
-    if (raw):
+    if raw:
         response_generator = send_chat_message_async(
-            model=model,
-            messages=messages,
-            user_message=user_message
+            model=model, messages=messages, user_message=user_message
         )
         view_response_stream(response_generator, raw=raw)
     else:
         view_messages(messages, model)
         response_generator = send_chat_message_async(
-            model=model,
-            messages=messages,
-            user_message=user_message
+            model=model, messages=messages, user_message=user_message
         )
         view_message(messages, model)
         view_response_stream(response_generator, raw=raw)
-    
+
 
 def conversation_command(conversation_name, model, prompt, stream):
     if stream:
@@ -79,26 +74,36 @@ def conversation_command_async(conversation_name, model, prompt):
     username, mac_address = get_user_information()
     prompt = load_prompt(prompt)
     model = model or prompt["model"]
-    conversation_path = Path(CONVERSATIONS_DIR).expanduser() / f"{conversation_name}__{model}.json"
+    conversation_path = (
+        Path(CONVERSATIONS_DIR).expanduser() / f"{conversation_name}__{model}.json"
+    )
     conversation = Datastore(conversation_path)
     session = load_session(conversation)
     key_bindings = load_key_bindings()
-    view_conversation_async(conversation, key_bindings, mac_address, model, session, username)
+    view_conversation_async(
+        conversation, key_bindings, mac_address, model, session, username
+    )
 
 
 def conversation_command_sync(conversation_name, model, prompt):
     username, mac_address = get_user_information()
     prompt = load_prompt(prompt)
     model = model or prompt["model"]
-    conversation_path = Path(CONVERSATIONS_DIR).expanduser() / f"{conversation_name}__{model}.json"
+    conversation_path = (
+        Path(CONVERSATIONS_DIR).expanduser() / f"{conversation_name}__{model}.json"
+    )
     conversation = Datastore(conversation_path)
     session = load_session(conversation)
     key_bindings = load_key_bindings()
-    view_conversation_sync(conversation, key_bindings, mac_address, model, session, username)
+    view_conversation_sync(
+        conversation, key_bindings, mac_address, model, session, username
+    )
 
 
 def delete_command(conversation_name, model, force):
-    conversation_path = Path(CONVERSATIONS_DIR).expanduser() / f"{conversation_name}__{model}.json"
+    conversation_path = (
+        Path(CONVERSATIONS_DIR).expanduser() / f"{conversation_name}__{model}.json"
+    )
 
     if not conversation_path.is_file():
         click.echo(f"Conversation file not found: {conversation_path}")
@@ -120,13 +125,13 @@ def delete_command(conversation_name, model, force):
 
 def list_command():
     conversation_files = Path(CONVERSATIONS_DIR).expanduser().glob("*__gpt-*.json")
-    view_conversations(conversation_files)    
+    view_conversations(conversation_files)
 
 
 def prompts_command():
     prompts = load_prompts()
     view_prompts(prompts)
-    
+
 
 def draw_command(image_description, browser, size):
     username, _ = get_user_information()
@@ -146,8 +151,13 @@ def models_command():
 
 
 def fork_command(source_conversation_name, new_conversation_name, model):
-    source_conversation_file = Path(CONVERSATIONS_DIR).expanduser() / f"{source_conversation_name}__{model}.json"
-    new_conversation_file = Path(CONVERSATIONS_DIR).expanduser() / f"{new_conversation_name}__{model}.json"
+    source_conversation_file = (
+        Path(CONVERSATIONS_DIR).expanduser()
+        / f"{source_conversation_name}__{model}.json"
+    )
+    new_conversation_file = (
+        Path(CONVERSATIONS_DIR).expanduser() / f"{new_conversation_name}__{model}.json"
+    )
     if not source_conversation_file.is_file():
         click.echo(f"Source conversation file not found: {source_conversation_file}")
         return
@@ -177,12 +187,10 @@ def analyze_command(filepath, model, prompt):
             "role": "user",
             "name": username,
             "mac_address": mac_address,
-            "content": file_content
+            "content": file_content,
         }
         response_message, usage = send_chat_message_sync(
-            model=model,
-            messages=messages,
-            user_message=user_message
+            model=model, messages=messages, user_message=user_message
         )
         messages.append(user_message)
         messages.append(response_message)
@@ -194,11 +202,8 @@ def send_command_async(filepath, raw, update):
     response_generator = send_chat_async(**prompt)
     view_messages(prompt["messages"], raw)
     content = view_response_stream(response_generator)
-    if (update):
-        prompt["messages"].append({
-            "role": "assistant",
-            "content": content
-        })
+    if update:
+        prompt["messages"].append({"role": "assistant", "content": content})
         save_prompt(filepath=filepath, prompt=prompt)
 
 
@@ -208,13 +213,13 @@ def send_command_sync(filepath, raw, update):
     response_message = view_data_loader(fn=get_api_data)
     prompt["messages"].append(response_message)
 
-    if (update):
+    if update:
         save_prompt(filepath=filepath, prompt=prompt)
     view_messages(prompt["messages"], raw)
 
 
 def send_command(filepath, raw, update, stream):
-    if (stream):
+    if stream:
         send_command_async(filepath, raw, update)
     else:
         send_command_sync(filepath, raw, update)

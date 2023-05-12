@@ -12,12 +12,14 @@ def attach_file_command(command_name, args, conversation, current_state, user_in
     for filepath in args:
         file = Path(filepath).expanduser()
         file_content = file.read_text()
-        conversation.add_item({
-            "role": "user",
-            "name": current_state["username"],
-            "content": file_content,
-            "mac_address": current_state["mac_address"]
-        })
+        conversation.add_item(
+            {
+                "role": "user",
+                "name": current_state["username"],
+                "content": file_content,
+                "mac_address": current_state["mac_address"],
+            }
+        )
 
     return conversation, current_state, user_input
 
@@ -31,22 +33,28 @@ def copy_to_clipboard(command_name, args, conversation, current_state, user_inpu
         response_id = last_response.get("id")
         content_to_copy = last_response.get("content", None)
         current_state["notifications"] = [f"last response ({response_id}) copied"]
-    elif selector == 'all':
+    elif selector == "all":
         all_responses = conversation.filter_items({"role": "assistant"})
-        content_to_copy = '\n\n'.join([message.get('content') for message in all_responses])
+        content_to_copy = "\n\n".join(
+            [message.get("content") for message in all_responses]
+        )
         current_state["notifications"] = ["all responses copied"]
-    elif ':' in selector:
-        start, end = map(int, selector.split(':'))
+    elif ":" in selector:
+        start, end = map(int, selector.split(":"))
         all_responses = conversation.filter_items({"role": "assistant"})
-        selected_responses = all_responses[start-1:end+1]
-        content_to_copy = "\n\n".join(response.get("content") for response in selected_responses)
+        selected_responses = all_responses[start - 1 : end + 1]
+        content_to_copy = "\n\n".join(
+            response.get("content") for response in selected_responses
+        )
         current_state["notifications"] = [f"responses {start}-{end} copied"]
     elif selector.isdigit():
         all_responses = conversation.filter_items({"role": "assistant"})
         selected_response = all_responses[int(selector) - 1]
         content_to_copy = selected_response.get("content")
         response_id = selected_response.get("id")
-        current_state["notifications"] = [f"response #{selector} ({response_id}) copied"]
+        current_state["notifications"] = [
+            f"response #{selector} ({response_id}) copied"
+        ]
     else:
         selected_response = conversation.get_item(selector)
         content_to_copy = conversation.get_item(selector).get("content")
@@ -56,11 +64,12 @@ def copy_to_clipboard(command_name, args, conversation, current_state, user_inpu
     if content_to_copy:
         pyperclip.copy(content_to_copy)
 
-
     return conversation, current_state, user_input
 
 
-def enable_multiline_command(command_name, args, conversation, current_state, user_input):
+def enable_multiline_command(
+    command_name, args, conversation, current_state, user_input
+):
     current_state["multiline_mode"] = True
 
     return conversation, current_state, user_input
@@ -78,34 +87,41 @@ def remove_message_command(command_name, args, conversation, current_state, user
 
 
 def snapshot_command(command_name, args, conversation, current_state, user_input):
-
     def timestamp_to_human(timestamp, timezone):
         dt = datetime.datetime.fromtimestamp(timestamp, pytz.timezone(timezone))
 
-        return dt.strftime('%B %d, %Y %H:%M:%S %Z')
+        return dt.strftime("%B %d, %Y %H:%M:%S %Z")
 
     def create_snapshot():
         current_timestamp = int(time.time())
         conversation_file_path = Path(conversation.file_name)
-        snapshot_path = conversation_file_path.with_suffix(f".{current_timestamp}.snapshot")
+        snapshot_path = conversation_file_path.with_suffix(
+            f".{current_timestamp}.snapshot"
+        )
         shutil.copyfile(str(conversation_file_path), str(snapshot_path))
 
         current_state["notifications"] = [f"snapshot created: {snapshot_path.stem}"]
 
     def list_snapshots():
         conversation_file_path = Path(conversation.file_name)
-        snapshots = conversation_file_path.parent.glob(f"{conversation_file_path.stem}.*.snapshot")
+        snapshots = conversation_file_path.parent.glob(
+            f"{conversation_file_path.stem}.*.snapshot"
+        )
         current_timezone = tzlocal.get_localzone()
         current_state["notifications"] = []
         for snapshot in snapshots:
             timestamp = snapshot.suffixes[-2][1:]
             formatted_timestamp = timestamp_to_human(int(timestamp), "America/New_York")
-            current_state["notifications"].append(f"{snapshot.stem} ({formatted_timestamp})\n")
+            current_state["notifications"].append(
+                f"{snapshot.stem} ({formatted_timestamp})\n"
+            )
 
     def rollback_to_snapshot():
         snapshot_name = "latest" if len(args) < 2 else args[1]
         conversation_file_path = Path(conversation.file_name)
-        snapshots = conversation_file_path.parent.glob(f"{conversation_file_path.stem}.*.snapshot")
+        snapshots = conversation_file_path.parent.glob(
+            f"{conversation_file_path.stem}.*.snapshot"
+        )
         selected_snapshot = None
         snapshots = list(snapshots)
         if snapshot_name == "latest" and snapshots > 0:
@@ -118,14 +134,18 @@ def snapshot_command(command_name, args, conversation, current_state, user_input
 
         if selected_snapshot:
             shutil.copyfile(str(selected_snapshot), str(conversation_file_path))
-            current_state["notifications"] = [f"Rollback to {selected_snapshot.stem} complete"]
+            current_state["notifications"] = [
+                f"Rollback to {selected_snapshot.stem} complete"
+            ]
         else:
             current_state["notifications"] = ["No matching rollbacks found"]
 
     def delete_snapshot():
         snapshot_name = "latest" if len(args) < 2 else args[1]
         conversation_file_path = Path(conversation.file_name)
-        snapshots = conversation_file_path.parent.glob(f"{conversation_file_path.stem}.*.snapshot")
+        snapshots = conversation_file_path.parent.glob(
+            f"{conversation_file_path.stem}.*.snapshot"
+        )
         selected_snapshot = None
         snapshots = list(snapshots)
         if snapshot_name == "latest" and snapshots > 0:
@@ -138,7 +158,9 @@ def snapshot_command(command_name, args, conversation, current_state, user_input
 
         if selected_snapshot:
             selected_snapshot.unlink()
-            current_state["notifications"] = [f"Rollback {selected_snapshot.stem} deleted"]
+            current_state["notifications"] = [
+                f"Rollback {selected_snapshot.stem} deleted"
+            ]
         else:
             current_state["notifications"] = ["No matching rollbacks found"]
 
@@ -171,5 +193,5 @@ conversation_commands = {
     "remove": remove_message_command,
     "snapshot": snapshot_command,
     "snapshots": snapshot_command,
-    "unknown": unknown_command
+    "unknown": unknown_command,
 }

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 import rich_click as click
-from commands import *
+from commands import VALID_ASK_MODELS, VALID_CONVERSATION_MODELS, VALID_SEND_MODELS
 from constants import *
+
 
 @click.group()
 def main():
@@ -102,10 +103,12 @@ def fork(**kwargs):
     """Duplicate an existing conversation"""
     fork_command(**kwargs)
 
+
 @main.command()
 def list(**kwargs):
     """List existing conversations"""
     list_command(**kwargs)
+
 
 @main.command()
 def models(**kwargs):
@@ -122,9 +125,11 @@ def prompts(**kwargs):
 @main.command()
 @click.argument("filepath", type=str)
 @click.option("-r", "--raw", is_flag=True, help="Show the raw content")
-@click.option("-u", "--update", is_flag=True, help="Save responses to the prompt file")
 @click.option(
-    "-s", "--stream", is_flag=True, help="Whether the response should be streamed."
+    "-u", "--update", is_flag=True, help="Apply the response to the prompt file"
+)
+@click.option(
+    "-s", "--stream", is_flag=True, help="Whether the response should be streamed"
 )
 def send(**kwargs):
     """Sends the prompt at the given filepath"""

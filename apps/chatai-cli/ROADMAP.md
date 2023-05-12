@@ -8,8 +8,8 @@
 - [x] Add conversation command to delete messages and responses from conversations
 - [x] Add conversation command for copying messages and responses to the clipboard
 - [x] Add conversation command to snapshot a specific state of a conversation
-- [ ] Add command/ability that shows token info (using model and response.usage.{prompt_tokens,completion_tokens,total_tokens})
-- [ ] Add conversation commands to apply and discard specific messages (request and/or response) to the current prompt's source file
+- [x] Add command/ability that shows token info (using model and response.usage.{prompt_tokens,completion_tokens,total_tokens})
+- [ ] Add support to apply and discard responses from the send command
 - [ ] Add CLI command for generating new prompts (locally and globally)
 - [ ] Add setting that enables logging for raw entries and responses for app
 - [ ] Add support for autocomplete of message and response IDs

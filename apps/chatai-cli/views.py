@@ -33,10 +33,10 @@ def view_conversation_sync(
         click.clear()
         click.echo("Entering an interactive conversation.")
         click.echo("Type 'exit' to end the conversation.")
-    
+
     def on_after_add_item(new_message):
         view_message(new_message)
-    
+
     def on_after_remove_item(item):
         view_conversation_banner()
         view_messages(conversation.get_items(), model)
@@ -53,10 +53,8 @@ def view_conversation_sync(
         "multiline_mode": False,
         "username": username,
     }
-    
 
     while True:
-
         # if conversation.last_item().get("role") == "user":
         #     messages = conversation.get_items()
         #     response_message = send_messages_sync(model, messages)
@@ -98,9 +96,7 @@ def view_conversation_sync(
                 )
                 messages = conversation.get_items()
                 get_api_data = lambda: send_chat_message_sync(
-                    model=model,
-                    messages=messages,
-                    user_message=user_message
+                    model=model, messages=messages, user_message=user_message
                 )
                 # response_message = send_chat_message_sync(model, messages, user_message)
                 response_message = view_data_loader(fn=get_api_data)
@@ -129,9 +125,9 @@ def view_image(image_description, image_url, size):
     render_text(f"Size: {size}x{size}\n")
     render_text(f"Preview URL: {image_url}\n")
     render_image(image_url)
-    
 
-def view_message(message, model='Unknown', raw=False):
+
+def view_message(message, model="Unknown", raw=False):
     console = Console()
     if message["role"] == "user":
         message_id = message.get("id", "None")
@@ -157,11 +153,8 @@ def view_message(message, model='Unknown', raw=False):
         prompt_tokens = message.get("usage").get("prompt_tokens")
         completion_tokens = message.get("usage").get("completion_tokens")
         total_tokens = message.get("usage").get("total_tokens")
-        token_limits = {
-            "gpt-3.5-turbo": "4096",
-            "gpt-4": "8192"
-        }
-        token_limit = token_limits.get(model, 'Unknown')
+        token_limits = {"gpt-3.5-turbo": "4096", "gpt-4": "8192"}
+        token_limit = token_limits.get(model, "Unknown")
         click.secho(" | message: ", nl=False)
         click.secho(f"{prompt_tokens}", nl=False)
         click.secho(" tokens", nl=False)
@@ -178,7 +171,7 @@ def view_message(message, model='Unknown', raw=False):
         click.echo("\n\n")
 
 
-def view_messages(messages, model='Unknown', raw=False):
+def view_messages(messages, model="Unknown", raw=False):
     for message in messages:
         view_message(message, model, raw)
 
@@ -187,7 +180,7 @@ def view_prompts(prompts):
     if not prompts:
         click.echo("No available prompts.")
     else:
-        prompts = sorted(prompts, key=lambda i: i['keys'][0])
+        prompts = sorted(prompts, key=lambda i: i["keys"][0])
         console = Console()
         table = Table(title="Prompts")
         table.add_column("Name", no_wrap=True)
@@ -198,11 +191,12 @@ def view_prompts(prompts):
             keys = prompt.get("keys")
             model = prompt.get("model")
             messages = prompt.get("messages")
-            system_context = messages[0]['content']
+            system_context = messages[0]["content"]
             name = keys[0]
-            aliases = ', '.join(keys[1:])
+            aliases = ", ".join(keys[1:])
             table.add_row(name, aliases, model, system_context)
         console.print(table)
+
 
 def view_response_stream(response_generator, raw=False):
     all_lines = ""

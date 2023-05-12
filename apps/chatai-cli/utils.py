@@ -120,10 +120,10 @@ def open_conversation(conversation_path, messages):
 
 
 def render_image(image_url):
-    if shutil.which('imgcat'):
+    if shutil.which("imgcat"):
         response = requests.get(image_url)
         image_data = response.content
-        subprocess.run(['imgcat'], input=image_data, check=True)
+        subprocess.run(["imgcat"], input=image_data, check=True)
 
 
 def render_text(text, **kwargs):
@@ -182,7 +182,9 @@ def send_chat_message_sync(model, messages, user_message):
         messages_payload.append(serialize_message(message))
     if user_message:
         messages_payload.append(serialize_message(user_message))
-    response = openai.ChatCompletion.create(model=model, messages=messages_payload, user=user)
+    response = openai.ChatCompletion.create(
+        model=model, messages=messages_payload, user=user
+    )
     message = response["choices"][0]["message"]
     message["usage"] = response["usage"]
     return message
@@ -197,7 +199,9 @@ def send_chat_message_async(model, messages, user_message):
     if user_message:
         messages_payload.append(serialize_message(user_message))
 
-    response_generator = openai.ChatCompletion.create(model=model, messages=messages_payload, user=user, stream=True)
+    response_generator = openai.ChatCompletion.create(
+        model=model, messages=messages_payload, user=user, stream=True
+    )
 
     return response_generator
 

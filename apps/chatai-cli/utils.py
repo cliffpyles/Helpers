@@ -3,7 +3,6 @@
 import json
 import openai
 import os
-import re
 import requests
 import rich_click as click
 import shutil

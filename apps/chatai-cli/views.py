@@ -11,6 +11,8 @@ from rich.table import Table
 from utils import *
 from constants import *
 
+console = Console()
+
 
 def view_conversations(conversation_files):
     conversations = []
@@ -60,12 +62,14 @@ def view_conversation_sync(
         #     response_message = send_messages_sync(model, messages)
         #     assistant_message = response_message.to_dict_recursive()
         #     conversation.add_item(assistant_message)
+        completer = load_completer(conversation)
 
         user_input = session.prompt(
             message=f"\n\n{MESSAGE_INDICATOR} New Message: ",
             key_bindings=key_bindings,
             multiline=current_state.get("multiline_mode", False),
             wrap_lines=True,
+            completer=completer,
         )
 
         # Execute the command if the input starts with a '/'
@@ -128,7 +132,6 @@ def view_image(image_description, image_url, size):
 
 
 def view_message(message, model="Unknown", raw=False):
-    console = Console()
     if message["role"] == "user":
         message_id = message.get("id", "None")
         click.secho(f"\n\n{MESSAGE_INDICATOR} Message ({message_id}):\n", bold=True)
@@ -181,7 +184,6 @@ def view_prompts(prompts):
         click.echo("No available prompts.")
     else:
         prompts = sorted(prompts, key=lambda i: i["keys"][0])
-        console = Console()
         table = Table(title="Prompts")
         table.add_column("Name", no_wrap=True)
         table.add_column("Aliases")

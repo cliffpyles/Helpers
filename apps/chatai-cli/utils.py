@@ -10,11 +10,15 @@ import socket
 import subprocess
 import uuid
 import yaml
-from conversation_commands import conversation_commands
+from conversation_commands import (
+    conversation_commands,
+    conversation_command_autocompletes,
+)
 from pathlib import Path
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.completion import NestedCompleter
 
 
 def execute_conversation_command(raw_command, **kwargs):
@@ -69,6 +73,22 @@ def get_user_information():
     mac_address = hex(uuid.getnode())
 
     return username, mac_address
+
+
+def load_completer(conversation):
+    command_names = [
+        conversation_command
+        for conversation_command in conversation_command_autocompletes.keys()
+    ]
+
+    commands = {}
+    for command_name in command_names:
+        commands[f"/{command_name}"] = conversation_command_autocompletes.get(
+            command_name
+        )(conversation)
+    completer = NestedCompleter.from_nested_dict(commands)
+
+    return completer
 
 
 def load_key_bindings():

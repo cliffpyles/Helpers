@@ -10,7 +10,7 @@
 - [x] Add conversation command to snapshot a specific state of a conversation
 - [x] Add command/ability that shows token info (using model and response.usage.{prompt_tokens,completion_tokens,total_tokens})
 - [x] Add support to apply responses from the send command
-- [ ] Add support for autocomplete of message and response IDs
+- [x] Add support for autocomplete of conversation commands
 - [ ] Add CLI command for generating new prompts (locally and globally)
 - [ ] Add setting that enables logging for raw entries and responses for app
 - [ ] Add support for analyzing and performing tasks on files, and after each task the user can choose to apply or discard the proposed changes

@@ -24,7 +24,9 @@ def attach_file_command(command_name, args, conversation, current_state, user_in
     return conversation, current_state, user_input
 
 
-def copy_to_clipboard(command_name, args, conversation, current_state, user_input):
+def copy_to_clipboard_command(
+    command_name, args, conversation, current_state, user_input
+):
     content_to_copy = None
     selector = args[0] if args else None
 
@@ -186,7 +188,7 @@ def unknown_command(command_name, args, conversation, current_state, user_input)
 
 conversation_commands = {
     "attach": attach_file_command,
-    "copy": copy_to_clipboard,
+    "copy": copy_to_clipboard_command,
     "delete": remove_message_command,
     "exit": exit_command,
     "multi": enable_multiline_command,
@@ -194,4 +196,57 @@ conversation_commands = {
     "snapshot": snapshot_command,
     "snapshots": snapshot_command,
     "unknown": unknown_command,
+}
+
+
+def attach_file_autocomplete(conversation):
+    return None
+
+
+def copy_to_clipboard_autocomplete(conversation):
+    message_ids = [message.get("id") for message in conversation.get_items()]
+    message_ids.sort()
+    return set(message_ids)
+
+
+def exit_autocomplete(conversation):
+    return None
+
+
+def enable_multiline_autocomplete(conversation):
+    return None
+
+
+def remove_message_autocomplete(conversation):
+    message_ids = [message.get("id") for message in conversation.get_items()]
+    message_ids.sort()
+    return set(message_ids)
+
+
+def snapshot_autocomplete(conversation):
+    conversation_file_path = Path(conversation.file_name)
+    snapshot_files = conversation_file_path.parent.glob(
+        f"{conversation_file_path.stem}.*.snapshot"
+    )
+    snapshots = []
+    for snapshot_file in snapshot_files:
+        snapshots.append(snapshot_file.stem)
+
+    return {
+        "create": None,
+        "list": None,
+        "rollback": set(snapshots),
+        "delete": set(snapshots),
+    }
+
+
+conversation_command_autocompletes = {
+    "attach": attach_file_autocomplete,
+    "copy": copy_to_clipboard_autocomplete,
+    "delete": remove_message_autocomplete,
+    "exit": exit_autocomplete,
+    "multi": enable_multiline_autocomplete,
+    "remove": remove_message_autocomplete,
+    "snapshot": snapshot_autocomplete,
+    "snapshots": snapshot_autocomplete,
 }

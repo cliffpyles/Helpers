@@ -7,3 +7,5 @@ DETAILS_INDICATOR = "📶"
 VALID_ASK_MODELS = ["gpt-3.5-turbo", "gpt-4"]
 VALID_CONVERSATION_MODELS = ["gpt-3.5-turbo", "gpt-4"]
 VALID_SEND_MODELS = ["gpt-3.5-turbo", "gpt-4"]
+NEWLINE_CHARACTER = """
+"""

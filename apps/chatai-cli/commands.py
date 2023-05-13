@@ -1,10 +1,33 @@
 # Filename: commands.py
 
+import click
 from pathlib import Path
 from utils import *
 from constants import *
 from views import *
 from lib.datastore import Datastore
+import re
+
+
+def analyze_command(filepath, model, prompt):
+    username, mac_address = get_user_information()
+    prompt = load_prompt(prompt)
+    model = model or prompt["model"]
+    messages = prompt["messages"]
+    file_content = Path(filepath).read_text()
+    if file_content:
+        user_message = {
+            "role": "user",
+            "name": username,
+            "mac_address": mac_address,
+            "content": file_content,
+        }
+        response_message, usage = send_chat_message_sync(
+            model=model, messages=messages, user_message=user_message
+        )
+        messages.append(user_message)
+        messages.append(response_message)
+    view_messages(messages)
 
 
 def ask_command(user_input, model, prompt, raw, stream):
@@ -123,31 +146,10 @@ def delete_command(conversation_name, model, force):
             click.echo(f"Error deleting conversation file: {e}")
 
 
-def list_command():
-    conversation_files = Path(CONVERSATIONS_DIR).expanduser().glob("*__gpt-*.json")
-    view_conversations(conversation_files)
-
-
-def prompts_command():
-    prompts = load_prompts()
-    view_prompts(prompts)
-
-
 def draw_command(image_description, browser, size):
     username, _ = get_user_information()
     image_url = send_image(image_description, size)
     view_image(image_description, image_url, size)
-
-
-def models_command():
-    openai.api_key = os.environ["OPENAI_API_KEY"]
-    response = openai.Model.list()
-    models = [model["id"] for model in response["data"]]
-    models.sort()
-
-    click.echo("Available Models:")
-    for model in models:
-        click.echo(f"{model}")
 
 
 def fork_command(source_conversation_name, new_conversation_name, model):
@@ -176,50 +178,61 @@ def fork_command(source_conversation_name, new_conversation_name, model):
         click.echo(f"Error forking conversation: {e}")
 
 
-def analyze_command(filepath, model, prompt):
-    username, mac_address = get_user_information()
-    prompt = load_prompt(prompt)
-    model = model or prompt["model"]
-    messages = prompt["messages"]
-    file_content = Path(filepath).read_text()
-    if file_content:
-        user_message = {
-            "role": "user",
-            "name": username,
-            "mac_address": mac_address,
-            "content": file_content,
-        }
-        response_message, usage = send_chat_message_sync(
-            model=model, messages=messages, user_message=user_message
-        )
-        messages.append(user_message)
-        messages.append(response_message)
-    view_messages(messages)
+def list_command():
+    conversation_files = Path(CONVERSATIONS_DIR).expanduser().glob("*__gpt-*.json")
+    view_conversations(conversation_files)
 
 
-def send_command_async(filepath, raw, update):
+def models_command():
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+    response = openai.Model.list()
+    models = [model["id"] for model in response["data"]]
+    models.sort()
+
+    click.echo("Available Models:")
+    for model in models:
+        click.echo(f"{model}")
+
+
+def prompts_command():
+    prompts = load_prompts()
+    view_prompts(prompts)
+
+
+def send_command_async(filepath, apply, interactive, raw):
     prompt = load_prompt(filepath=filepath)
     response_generator = send_chat_async(**prompt)
     view_messages(prompt["messages"], raw)
     content = view_response_stream(response_generator)
-    if update:
+    if apply:
         prompt["messages"].append({"role": "assistant", "content": content})
         save_prompt(filepath=filepath, prompt=prompt)
 
 
-def send_command_sync(filepath, raw, update):
+def send_command_sync(filepath, apply, interactive, raw):
     prompt = load_prompt(filepath=filepath)
-    get_api_data = lambda: send_chat_sync(**prompt)
-    response_message = view_data_loader(fn=get_api_data)
+    system_info = get_system_info()
+    model = prompt.get("model")
+    messages = prompt.get("messages")
+    user_message = {
+        "mac_address": system_info["mac_address"],
+        "name": system_info["login"],
+    }
+    get_api_data = lambda: send_chat_message_sync(model, messages, user_message)
+    response = view_data_loader(fn=get_api_data)
+    response_message = response.to_dict_recursive()
+    response_message["content"] = re.sub(r" \n", "\n", response_message["content"])
     prompt["messages"].append(response_message)
-
-    if update:
-        save_prompt(filepath=filepath, prompt=prompt)
     view_messages(prompt["messages"], raw)
+    if not apply and interactive:
+        click.echo("\n")
+        apply = click.confirm("Would you like to apply the response?")
+    if apply:
+        save_prompt(filepath=filepath, prompt=prompt)
 
 
-def send_command(filepath, raw, update, stream):
+def send_command(filepath, apply, interactive, raw, stream):
     if stream:
-        send_command_async(filepath, raw, update)
+        send_command_async(filepath, apply, interactive, raw)
     else:
-        send_command_sync(filepath, raw, update)
+        send_command_sync(filepath, apply, interactive, raw)

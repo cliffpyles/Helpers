@@ -9,10 +9,10 @@
 - [x] Add conversation command for copying messages and responses to the clipboard
 - [x] Add conversation command to snapshot a specific state of a conversation
 - [x] Add command/ability that shows token info (using model and response.usage.{prompt_tokens,completion_tokens,total_tokens})
-- [ ] Add support to apply and discard responses from the send command
+- [x] Add support to apply responses from the send command
+- [ ] Add support for autocomplete of message and response IDs
 - [ ] Add CLI command for generating new prompts (locally and globally)
 - [ ] Add setting that enables logging for raw entries and responses for app
-- [ ] Add support for autocomplete of message and response IDs
 - [ ] Add support for analyzing and performing tasks on files, and after each task the user can choose to apply or discard the proposed changes
 - [ ] Add documentation via README
 - [ ] Add CLI commands for managing settings in the global settings file (CRUDL operations)

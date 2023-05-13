@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import rich_click as click
-from commands import VALID_ASK_MODELS, VALID_CONVERSATION_MODELS, VALID_SEND_MODELS
-from constants import *
+from commands import *
+from constants import VALID_ASK_MODELS, VALID_CONVERSATION_MODELS, VALID_SEND_MODELS
 
 
 @click.group()
@@ -124,10 +124,13 @@ def prompts(**kwargs):
 
 @main.command()
 @click.argument("filepath", type=str)
-@click.option("-r", "--raw", is_flag=True, help="Show the raw content")
 @click.option(
-    "-u", "--update", is_flag=True, help="Apply the response to the prompt file"
+    "-a", "--apply", is_flag=True, help="Apply the response to the prompt file"
 )
+@click.option(
+    "-i", "--interactive", is_flag=True, help="Ask if you want to the apply response"
+)
+@click.option("-r", "--raw", is_flag=True, help="Show the raw content")
 @click.option(
     "-s", "--stream", is_flag=True, help="Whether the response should be streamed"
 )

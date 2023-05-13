@@ -3,9 +3,11 @@
 import json
 import openai
 import os
+import re
 import requests
 import rich_click as click
 import shutil
+import socket
 import subprocess
 import uuid
 import yaml
@@ -39,9 +41,34 @@ def get_conversation_path(conversation_name, model):
     return conversation_path
 
 
+def get_system_info():
+    system_info = {}
+    # User name
+    system_info["login"] = os.getlogin()
+
+    # Host name
+    system_info["host_name"] = socket.gethostname()
+
+    # IP address
+    system_info["ip_address"] = socket.gethostbyname(system_info["host_name"])
+
+    # System name
+    system_info["system_name"] = os.name
+
+    # Mac address
+    system_info["mac_address"] = ":".join(
+        ["{:02x}".format((uuid.getnode() >> ele) & 0xFF) for ele in range(0, 8 * 6, 8)][
+            ::-1
+        ]
+    )
+
+    return system_info
+
+
 def get_user_information():
     username = os.getlogin()
     mac_address = hex(uuid.getnode())
+
     return username, mac_address
 
 
@@ -131,10 +158,16 @@ def render_text(text, **kwargs):
 
 
 def save_prompt(filepath, prompt):
-    filepath = Path(filepath).expanduser()
-    content = yaml.dump(prompt)
-    filepath.write_text(content)
+    def str_presenter(dumper, data):
+        if len(data.splitlines()) > 1:  # check for multiline string
+            return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data)
 
+    yaml.add_representer(str, str_presenter)
+    yaml.representer.SafeRepresenter.add_representer(str, str_presenter)
+    filepath = Path(filepath).expanduser()
+    content = yaml.dump(prompt, default_flow_style=False, sort_keys=False)
+    filepath.write_text(content, newline=None)
     return filepath
 
 
@@ -180,7 +213,7 @@ def send_chat_message_sync(model, messages, user_message):
     user = f"{user_message['mac_address']}::{user_message['name']}"
     for message in messages:
         messages_payload.append(serialize_message(message))
-    if user_message:
+    if "content" in user_message:
         messages_payload.append(serialize_message(user_message))
     response = openai.ChatCompletion.create(
         model=model, messages=messages_payload, user=user

@@ -55,10 +55,11 @@ def ask_command_sync(user_input, model, prompt, raw):
         response_message = get_api_data()
         click.echo(response_message["content"])
     else:
-        response_message = view_data_loader(fn=get_api_data)
         messages.append(user_message)
-        messages.append(response_message)
         view_messages(messages, model)
+        response_message = view_data_loader(fn=get_api_data)
+        messages.append(response_message)
+        view_message(messages[-1])
 
 
 def ask_command_async(user_input, model, prompt, raw):
@@ -218,12 +219,13 @@ def send_command_sync(filepath, apply, interactive, raw):
         "mac_address": system_info["mac_address"],
         "name": system_info["login"],
     }
+    view_messages(prompt["messages"], raw)
     get_api_data = lambda: send_chat_message_sync(model, messages, user_message)
     response = view_data_loader(fn=get_api_data)
     response_message = response.to_dict_recursive()
     response_message["content"] = re.sub(r" \n", "\n", response_message["content"])
     prompt["messages"].append(response_message)
-    view_messages(prompt["messages"], raw)
+    view_message(prompt["messages"][-1], raw)
     if not apply and interactive:
         click.echo("\n")
         apply = click.confirm("Would you like to apply the response?")

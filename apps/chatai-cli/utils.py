@@ -19,6 +19,7 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.completion import NestedCompleter
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 
 
 def execute_conversation_command(raw_command, **kwargs):
@@ -96,7 +97,10 @@ def load_key_bindings():
 
 
 def load_session(conversation):
-    session = PromptSession(history=InMemoryHistory())
+    session = PromptSession(
+        auto_suggest=AutoSuggestFromHistory(), history=InMemoryHistory()
+    )
+
     for message in conversation.get_items():
         if message["role"] == "user":
             session.history.append_string(message["content"])

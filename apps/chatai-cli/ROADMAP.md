@@ -12,6 +12,7 @@
 - [x] Add support to apply responses from the send command
 - [x] Add support for autocomplete of conversation commands
 - [x] Add support for autosuggest in conversation input
+- [ ] Add support for exporting conversations to a prompt file
 - [ ] Add support for providing URLs for prompts
 - [ ] Add CLI command for generating new prompts (locally and globally)
 - [ ] Add setting that enables logging for raw entries and responses for app

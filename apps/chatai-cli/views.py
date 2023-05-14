@@ -14,6 +14,12 @@ from constants import *
 console = Console()
 
 
+def view_banner(message):
+    click.clear()
+    click.echo(message)
+    click.echo("Type 'exit' to end the conversation.")
+
+
 def view_conversations(conversation_files):
     conversations = []
     for file in conversation_files:
@@ -31,22 +37,17 @@ def view_conversations(conversation_files):
 def view_conversation_sync(
     conversation, key_bindings, mac_address, model, session, username
 ):
-    def view_conversation_banner():
-        click.clear()
-        click.echo("Entering an interactive conversation.")
-        click.echo("Type 'exit' to end the conversation.")
-
     def on_after_add_item(new_message):
         view_message(new_message)
 
     def on_after_remove_item(item):
-        view_conversation_banner()
+        view_banner("Entering an interactive conversation.")
         view_messages(conversation.get_items(), model)
 
     conversation.register_event_hook("after", "add_item", on_after_add_item)
     conversation.register_event_hook("after", "remove_item", on_after_remove_item)
 
-    view_conversation_banner()
+    view_banner("Entering an interactive conversation.")
     view_messages(conversation.get_items(), model)
 
     current_state = {
@@ -219,3 +220,55 @@ def view_response_stream(response_generator, raw=False):
                 click.echo(line)
                 line = ""
     return all_lines
+
+
+def view_edit_sync(file, key_bindings, mac_address, messages, model, session, username):
+    current_state = {
+        "mac_address": mac_address,
+        "model": model,
+        "multiline_mode": False,
+        "username": username,
+        "running": True,
+    }
+    view_banner(f"Editing file: {file.name}")
+    view_messages(messages, model)
+    while current_state["running"]:
+        user_input = session.prompt(
+            message=f"\n\n{MESSAGE_INDICATOR} New Message: ",
+            key_bindings=key_bindings,
+            multiline=current_state.get("multiline_mode", False),
+            wrap_lines=True,
+        )
+
+        # Execute the command if the input starts with a '/'
+        if user_input.startswith("/exit"):
+            current_state["running"] = False
+        elif user_input.startswith("/multi"):
+            current_state["multiline_mode"] = True
+        elif len(user_input.strip()) > 0:
+            try:
+                user_message = {
+                    "role": "user",
+                    "name": username,
+                    "content": f"{user_input}",
+                    "mac_address": mac_address,
+                }
+                get_api_data = lambda: send_chat_message_sync(
+                    model=model, messages=messages, user_message=user_message
+                )
+                response_message = view_data_loader(fn=get_api_data)
+                assistant_message = response_message.to_dict_recursive()
+                rendered_content = Markdown(assistant_message["content"])
+                console.print(rendered_content)
+                if "```" in assistant_message["content"]:
+                    confirm_apply = click.confirm("Do you want to apply the changes?")
+                    if confirm_apply:
+                        messages.append(user_message)
+                        messages.append(assistant_message)
+                        stripped_text = (
+                            assistant_message["content"].strip().strip("```").strip()
+                        )
+                        file.write_text(f"{stripped_text}\n")
+                current_state["multiline_mode"] = False
+            except Exception as e:
+                click.echo(f"Error: {e}")

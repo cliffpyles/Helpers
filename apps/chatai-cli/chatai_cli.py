@@ -90,6 +90,20 @@ def draw(**kwargs):
 
 
 @main.command()
+@click.argument("filepath", type=str)
+@click.option(
+    "-m",
+    "--model",
+    type=click.Choice(VALID_CONVERSATION_MODELS),
+    help=f"Language model to use. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}",
+)
+@click.option("-r", "--raw", is_flag=True, help="Show the raw content")
+def edit(**kwargs):
+    """Start an ongoing edit with the chatbot"""
+    edit_command(**kwargs)
+
+
+@main.command()
 @click.argument("source_conversation_name", type=str)
 @click.argument("new_conversation_name", type=str)
 @click.option(

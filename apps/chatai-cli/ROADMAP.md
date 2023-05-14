@@ -12,11 +12,11 @@
 - [x] Add support to apply responses from the send command
 - [x] Add support for autocomplete of conversation commands
 - [x] Add support for autosuggest in conversation input
+- [x] Add support for analyzing and performing tasks on files, and after each task the user can choose to apply or discard the proposed changes
 - [ ] Add support for exporting conversations to a prompt file
 - [ ] Add support for providing URLs for prompts
 - [ ] Add CLI command for generating new prompts (locally and globally)
 - [ ] Add setting that enables logging for raw entries and responses for app
-- [ ] Add support for analyzing and performing tasks on files, and after each task the user can choose to apply or discard the proposed changes
 - [ ] Add documentation via README
 - [ ] Add CLI commands for managing settings in the global settings file (CRUDL operations)
 

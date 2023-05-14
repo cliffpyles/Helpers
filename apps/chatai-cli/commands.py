@@ -153,6 +153,34 @@ def draw_command(image_description, browser, size):
     view_image(image_description, image_url, size)
 
 
+def edit_command(filepath, model, raw):
+    system_info = get_system_info()
+    prompt = load_prompt("texteditor")
+    session = load_session()
+    key_bindings = load_key_bindings()
+    model = model or prompt["model"]
+    messages = prompt["messages"]
+    file = Path(filepath).expanduser()
+    file_content = file.read_text()
+    file_content = f"```\n{file_content}\n```"
+    user_message = {
+        "role": "user",
+        "name": system_info["login"],
+        "mac_address": system_info["mac_address"],
+        "content": file_content,
+    }
+    messages.append(user_message)
+    view_edit_sync(
+        file,
+        key_bindings,
+        system_info["mac_address"],
+        messages,
+        model,
+        session,
+        system_info["login"],
+    )
+
+
 def fork_command(source_conversation_name, new_conversation_name, model):
     source_conversation_file = (
         Path(CONVERSATIONS_DIR).expanduser()

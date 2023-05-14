@@ -69,6 +69,23 @@ def get_system_info():
     return system_info
 
 
+def get_text_between(source, start_tag, end_tag):
+    # Check if the start_tag and end_tag exist in the source
+    if start_tag not in source or end_tag not in source:
+        raise ValueError("Start tag or end tag not found in source.")
+
+    # Check if the start_tag comes before the end_tag
+    if source.index(start_tag) > source.index(end_tag):
+        raise ValueError("Start tag appears after end tag.")
+
+    # Find the start and end indices of the content between the tags
+    start_index = source.index(start_tag) + len(start_tag)
+    end_index = source.index(end_tag)
+
+    # Extract and return the content
+    return source[start_index:end_index]
+
+
 def get_user_information():
     username = os.getlogin()
     mac_address = hex(uuid.getnode())
@@ -96,14 +113,14 @@ def load_key_bindings():
     return KeyBindings()
 
 
-def load_session(conversation):
+def load_session(conversation=None):
     session = PromptSession(
         auto_suggest=AutoSuggestFromHistory(), history=InMemoryHistory()
     )
-
-    for message in conversation.get_items():
-        if message["role"] == "user":
-            session.history.append_string(message["content"])
+    if conversation:
+        for message in conversation.get_items():
+            if message["role"] == "user":
+                session.history.append_string(message["content"])
     return session
 
 
@@ -238,6 +255,7 @@ def send_chat_message_sync(model, messages, user_message):
         messages_payload.append(serialize_message(message))
     if "content" in user_message:
         messages_payload.append(serialize_message(user_message))
+
     response = openai.ChatCompletion.create(
         model=model, messages=messages_payload, user=user
     )

@@ -37,6 +37,11 @@ class Datastore:
             for callback in self.event_hooks[hook_type][operation]:
                 callback(*args, **kwargs)
 
+    def select_fields(self, item, fields):
+        if not fields:
+            return item
+        return {field: item.get(field) for field in fields if field in item}
+
     def load_items(self):
         if os.path.exists(self.file_name):
             with open(self.file_name, "r") as file:
@@ -59,13 +64,12 @@ class Datastore:
         self.execute_event_hooks("after", "add_item", obj)
         return obj
 
-    def get_items(self, ids=None):
+    def get_items(self, ids=None, fields=None):
+        items = []
         if not ids:
-            return self.objects
-
-        if isinstance(ids, list):
-            return [obj for obj in self.objects if obj["id"] in ids]
-
+            items = self.objects
+        elif isinstance(ids, list):
+            items = [obj for obj in self.objects if obj["id"] in ids]
         elif isinstance(ids, str):
             start_id, end_id = ids.split(":", 1) if ":" in ids else (ids, None)
             start_index = next(
@@ -91,28 +95,25 @@ class Datastore:
 
             if start_index is None:
                 raise ValueError(f"Invalid start ID: {start_id}")
-
             if end_id and end_index is None:
                 raise ValueError(f"Invalid end ID: {end_id}")
 
             if end_index:
-                return self.objects[start_index : end_index + 1]
+                items = self.objects[start_index : end_index + 1]
             else:
-                return self.objects[start_index:]
-
+                items = self.objects[start_index:]
         else:
             raise TypeError("Invalid argument type for ids. Must be a list or string.")
 
-    def get_item(self, id):
-        current_item = None
-        for obj in self.objects:
-            if obj["id"] == id:
-                current_item = obj
-                break
-        return current_item
+        return [self.select_fields(item, fields) for item in items]
 
-    def last_item(self):
-        return self.objects[-1]
+    def get_item(self, id, fields=None):
+        item = next((obj for obj in self.objects if obj["id"] == id), None)
+        return self.select_fields(item, fields)
+
+    def last_item(self, fields=None):
+        item = self.objects[-1] if self.objects else None
+        return self.select_fields(item, fields)
 
     def update_item(self, id, updates):
         self.execute_event_hooks("before", "update_item", id, updates)
@@ -142,12 +143,14 @@ class Datastore:
         self.execute_event_hooks("after", "remove_item", deleted_item)
         return deleted_item
 
-    def search_items(self, query):
-        return [obj for obj in self.objects if query in str(obj)]
+    def search_items(self, query, fields=None):
+        items = [obj for obj in self.objects if query in str(obj)]
+        return [self.select_fields(item, fields) for item in items]
 
-    def filter_items(self, condition):
-        return [
+    def filter_items(self, condition, fields=None):
+        items = [
             obj
             for obj in self.objects
             if all(obj.get(key) == value for key, value in condition.items())
         ]
+        return [self.select_fields(item, fields) for item in items]

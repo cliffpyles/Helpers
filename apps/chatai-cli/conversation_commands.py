@@ -6,6 +6,7 @@ import datetime
 import pytz
 import shutil
 import tzlocal
+import yaml
 
 
 def attach_file_command(command_name, args, conversation, current_state, user_input):
@@ -73,6 +74,34 @@ def enable_multiline_command(
     command_name, args, conversation, current_state, user_input
 ):
     current_state["multiline_mode"] = True
+
+    return conversation, current_state, user_input
+
+
+def export_command(command_name, args, conversation, current_state, user_input):
+    def save_prompt(filepath, prompt):
+        def str_presenter(dumper, data):
+            if len(data.splitlines()) > 1:  # check for multiline string
+                return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+            return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+        yaml.add_representer(str, str_presenter)
+        yaml.representer.SafeRepresenter.add_representer(str, str_presenter)
+        filepath = Path(filepath).expanduser()
+        content = yaml.dump(prompt, default_flow_style=False, sort_keys=False)
+        filepath.write_text(content, newline=None)
+        return filepath
+
+    filepath = Path(args[0]).expanduser()
+    model = current_state.get("model", "gpt-3.5-turbo")
+
+    if not filepath.is_file():
+        messages = conversation.get_items(fields=["role", "name", "content"])
+        prompt = {"model": model, "messages": messages}
+        save_prompt(filepath, prompt)
+        current_state["notifications"] = [f"exported to {args[0]}"]
+    else:
+        current_state["notifications"] = [f"{args[0]} already exists"]
 
     return conversation, current_state, user_input
 
@@ -191,6 +220,7 @@ conversation_commands = {
     "copy": copy_to_clipboard_command,
     "delete": remove_message_command,
     "exit": exit_command,
+    "export": export_command,
     "multi": enable_multiline_command,
     "remove": remove_message_command,
     "snapshot": snapshot_command,
@@ -210,6 +240,10 @@ def copy_to_clipboard_autocomplete(conversation):
 
 
 def exit_autocomplete(conversation):
+    return None
+
+
+def export_autocomplete(conversation):
     return None
 
 
@@ -245,6 +279,7 @@ conversation_command_autocompletes = {
     "copy": copy_to_clipboard_autocomplete,
     "delete": remove_message_autocomplete,
     "exit": exit_autocomplete,
+    "export": export_autocomplete,
     "multi": enable_multiline_autocomplete,
     "remove": remove_message_autocomplete,
     "snapshot": snapshot_autocomplete,

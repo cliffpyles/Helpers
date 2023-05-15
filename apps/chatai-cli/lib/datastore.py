@@ -16,8 +16,9 @@ def merge_dicts(dict1, dict2):
 
 
 class Datastore:
-    def __init__(self, file_name):
+    def __init__(self, file_name=None, initial_data=None):
         self.file_name = file_name
+        self.initial_data = initial_data
         self.objects = self.load_items()
         self.event_hooks = {"before": {}, "after": {}}
 
@@ -43,15 +44,23 @@ class Datastore:
         return {field: item.get(field) for field in fields if field in item}
 
     def load_items(self):
-        if os.path.exists(self.file_name):
-            with open(self.file_name, "r") as file:
-                return json.load(file)
-        else:
-            return []
+        if self.file_name and self.initial_data:
+            raise ValueError(
+                "Invalid arguments: file_name and initial_data can not be used together"
+            )
+        elif self.file_name:
+            if os.path.exists(self.file_name):
+                with open(self.file_name, "r") as file:
+                    return json.load(file)
+            else:
+                return []
+        elif self.initial_data:
+            return deepcopy(self.initial_data)
 
     def save_items(self):
-        with open(self.file_name, "w") as file:
-            json.dump(self.objects, file)
+        if self.file_name:
+            with open(self.file_name, "w") as file:
+                json.dump(self.objects, file)
 
     def add_item(self, obj):
         self.execute_event_hooks("before", "add_item", obj)

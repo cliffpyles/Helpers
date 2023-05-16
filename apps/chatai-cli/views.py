@@ -38,7 +38,7 @@ def view_conversation_sync(
     conversation, key_bindings, mac_address, model, session, username
 ):
     def on_after_add_item(new_message):
-        view_message(new_message)
+        view_message(new_message, model)
 
     def on_after_remove_item(item):
         view_banner(f"Entering an interactive conversation with {model}")

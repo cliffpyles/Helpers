@@ -5,6 +5,7 @@ import rich_click as click
 from rich.progress import Progress, TimeElapsedColumn, SpinnerColumn
 from rich.console import Console
 from rich.markdown import Markdown
+from rich.live import Live
 from rich import print
 from rich.panel import Panel
 from rich.table import Table
@@ -34,6 +35,82 @@ def view_conversations(conversation_files):
             click.echo(f"Name: {conversation['name']} | Model: {conversation['model']}")
 
 
+def view_conversation_async(
+    conversation, key_bindings, mac_address, model, session, username
+):
+    def on_after_add_item(new_message):
+        if new_message["role"] == "user":
+            view_message(new_message, model)
+
+    def on_after_remove_item(item):
+        view_banner(f"Entering an interactive conversation with {model}")
+        view_messages(conversation.get_items(), model)
+
+    conversation.register_event_hook("after", "add_item", on_after_add_item)
+    conversation.register_event_hook("after", "remove_item", on_after_remove_item)
+
+    view_banner(f"Entering an interactive conversation with {model}")
+    view_messages(conversation.get_items(), model)
+
+    current_state = {
+        "mac_address": mac_address,
+        "model": model,
+        "multiline_mode": False,
+        "username": username,
+    }
+
+    while True:
+        completer = load_completer(conversation)
+
+        user_input = session.prompt(
+            message=f"\n\n{MESSAGE_INDICATOR} New Message: ",
+            key_bindings=key_bindings,
+            multiline=current_state.get("multiline_mode", False),
+            wrap_lines=True,
+            completer=completer,
+        )
+
+        # Execute the command if the input starts with a '/'
+        if user_input.startswith("/"):
+            conversation, current_state, user_input = execute_conversation_command(
+                user_input,
+                conversation=conversation,
+                current_state=current_state,
+                user_input=user_input,
+            )
+            if "warnings" in current_state:
+                for warning in current_state["warnings"]:
+                    click.secho(warning, fg="yellow")
+                del current_state["warnings"]
+            if "notifications" in current_state:
+                for notification in current_state["notifications"]:
+                    click.secho(notification, fg="blue")
+                del current_state["notifications"]
+        elif len(user_input.strip()) > 0:
+            try:
+                user_message = conversation.add_item(
+                    {
+                        "role": "user",
+                        "name": username,
+                        "content": f"{user_input}",
+                        "mac_address": mac_address,
+                    }
+                )
+                messages = conversation.get_items()
+                response_generator = send_chat_message_async(
+                    model=model, messages=messages, user_message=user_message
+                )
+                response_message = view_response_stream(response_generator)
+                assistant_message = {
+                    "role": "assistant",
+                    "content": response_message
+                }
+                conversation.add_item(assistant_message)
+                current_state["multiline_mode"] = False
+            except Exception as e:
+                click.echo(f"Error: {e}")
+
+
 def view_conversation_sync(
     conversation, key_bindings, mac_address, model, session, username
 ):
@@ -58,11 +135,6 @@ def view_conversation_sync(
     }
 
     while True:
-        # if conversation.last_item().get("role") == "user":
-        #     messages = conversation.get_items()
-        #     response_message = send_messages_sync(model, messages)
-        #     assistant_message = response_message.to_dict_recursive()
-        #     conversation.add_item(assistant_message)
         completer = load_completer(conversation)
 
         user_input = session.prompt(
@@ -209,19 +281,33 @@ def view_response_stream(response_generator, raw=False):
     line = ""
     if not raw:
         click.secho(f"\n\n{RESPONSE_INDICATOR} Response:\n", bold=True)
-    for message in response_generator:
-        finish_reason = message["choices"][0]["finish_reason"]
-        if finish_reason == "stop":
-            click.echo(line)
-            break
-        else:
-            delta = message["choices"][0]["delta"]
-            content = delta.get("content", "")
-            line += content
-            all_lines += content
-            if "\n" in content:
+        with Live(refresh_per_second=10) as live:
+            for message in response_generator:
+                finish_reason = message["choices"][0]["finish_reason"]
+                if finish_reason == "stop":
+                    markdown = Markdown(all_lines)
+                    live.update(markdown)
+                    break
+                else:
+                    delta = message["choices"][0]["delta"]
+                    content = delta.get("content", "")
+                    all_lines += content
+                    markdown = Markdown(all_lines)
+                    live.update(markdown)
+    else:
+        for message in response_generator:
+            finish_reason = message["choices"][0]["finish_reason"]
+            if finish_reason == "stop":
                 click.echo(line)
-                line = ""
+                break
+            else:
+                delta = message["choices"][0]["delta"]
+                content = delta.get("content", "")
+                line += content
+                all_lines += content
+                if "\n" in content:
+                    click.echo(line)
+                    line = ""
     return all_lines
 
 

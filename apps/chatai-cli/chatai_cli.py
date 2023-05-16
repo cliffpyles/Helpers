@@ -50,7 +50,7 @@ def ask(user_input, **kwargs):
     help="Name of a preconfigured prompt to use",
 )
 @click.option(
-    "-s", "--stream", is_flag=True, help="Whether the response should be streamed."
+    "-s", "--stream", is_flag=True, help="Whether the responses should be streamed."
 )
 def conversation(**kwargs):
     """Start an ongoing conversation with the chatbot"""

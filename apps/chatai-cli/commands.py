@@ -83,7 +83,7 @@ def ask_command_async(user_input, model, prompt, raw):
         response_generator = send_chat_message_async(
             model=model, messages=messages, user_message=user_message
         )
-        view_message(messages, model)
+        # view_message(messages, model)
         view_response_stream(response_generator, raw=raw)
 
 

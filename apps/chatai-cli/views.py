@@ -17,7 +17,7 @@ console = Console()
 def view_banner(message):
     click.clear()
     click.echo(message)
-    click.echo("Type 'exit' to end the conversation.")
+    click.echo("Type '/exit' to end the conversation.")
 
 
 def view_conversations(conversation_files):
@@ -41,13 +41,13 @@ def view_conversation_sync(
         view_message(new_message)
 
     def on_after_remove_item(item):
-        view_banner("Entering an interactive conversation.")
+        view_banner(f"Entering an interactive conversation with {model}")
         view_messages(conversation.get_items(), model)
 
     conversation.register_event_hook("after", "add_item", on_after_add_item)
     conversation.register_event_hook("after", "remove_item", on_after_remove_item)
 
-    view_banner("Entering an interactive conversation.")
+    view_banner(f"Entering an interactive conversation with {model}")
     view_messages(conversation.get_items(), model)
 
     current_state = {
@@ -230,7 +230,7 @@ def view_edit_sync(file, key_bindings, mac_address, messages, model, session, us
         "username": username,
         "running": True,
     }
-    view_banner(f"Editing file: {file.name}")
+    view_banner(f"Editing {file.name} with {model}")
     view_messages(messages, model)
     while current_state["running"]:
         user_input = session.prompt(

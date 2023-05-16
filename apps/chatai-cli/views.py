@@ -172,6 +172,9 @@ def view_message(message, model="Unknown", raw=False):
         click.secho("/", nl=False)
         click.secho(f"{token_limit}", nl=False)
         click.secho(" tokens", nl=False)
+
+        click.secho(" | id: ", nl=False)
+        click.secho(f"{message_id}", nl=False)
         click.echo("\n\n")
 
 

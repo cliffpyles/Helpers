@@ -9,6 +9,36 @@ import tzlocal
 import yaml
 
 
+def select_conversation_items(conversation, selector):
+    conversation_items = None
+    if not selector:
+        return conversation_items
+    elif selector == "last":
+        conversation_items = conversation.last_item()
+        return [conversation_items]
+    elif selector == "all":
+        conversation_items = conversation.get_items()
+        return conversation_items
+    elif selector == "all_responses":
+        conversation_items = conversation.filter_items({"role": "assistant"})
+        return conversation_items
+    elif selector == "all_messages":
+        conversation_items = conversation.filter_items({"role": "user"})
+        return conversation_items
+    elif ":" in selector:
+        start, end = map(int, selector.split(":"))
+        all_responses = conversation.get_items()
+        conversation_items = all_responses[start - 1 : end + 1]
+        return conversation_items
+    elif selector.isdigit():
+        all_responses = conversation.get_items()
+        conversation_items = all_responses[int(selector) - 1]
+        return conversation_items
+    else:
+        conversation_items = conversation.get_item(selector)
+        return [conversation_items]
+
+
 def attach_file_command(command_name, args, conversation, current_state, user_input):
     for filepath in args:
         file = Path(filepath).expanduser()
@@ -28,44 +58,19 @@ def attach_file_command(command_name, args, conversation, current_state, user_in
 def copy_to_clipboard_command(
     command_name, args, conversation, current_state, user_input
 ):
-    content_to_copy = None
     selector = args[0] if args else None
+    selected_items = select_conversation_items(conversation, selector)
 
-    if not selector:
-        last_response = conversation.filter_items({"role": "assistant"})[-1]
-        response_id = last_response.get("id")
-        content_to_copy = last_response.get("content", None)
-        current_state["notifications"] = [f"last response ({response_id}) copied"]
-    elif selector == "all":
-        all_responses = conversation.filter_items({"role": "assistant"})
-        content_to_copy = "\n\n".join(
-            [message.get("content") for message in all_responses]
-        )
-        current_state["notifications"] = ["all responses copied"]
-    elif ":" in selector:
-        start, end = map(int, selector.split(":"))
-        all_responses = conversation.filter_items({"role": "assistant"})
-        selected_responses = all_responses[start - 1 : end + 1]
-        content_to_copy = "\n\n".join(
-            response.get("content") for response in selected_responses
-        )
-        current_state["notifications"] = [f"responses {start}-{end} copied"]
-    elif selector.isdigit():
-        all_responses = conversation.filter_items({"role": "assistant"})
-        selected_response = all_responses[int(selector) - 1]
-        content_to_copy = selected_response.get("content")
-        response_id = selected_response.get("id")
-        current_state["notifications"] = [
-            f"response #{selector} ({response_id}) copied"
-        ]
+    if not selected_items:
+        current_state["notifications"] = [f"no items found to copy"]
     else:
-        selected_response = conversation.get_item(selector)
-        content_to_copy = conversation.get_item(selector).get("content")
-        response_id = selected_response.get("id")
-        current_state["notifications"] = [f"response {response_id} copied"]
-
-    if content_to_copy:
-        pyperclip.copy(content_to_copy)
+        content_to_copy = ""
+        content_to_copy += "\n\n".join(
+            [selected_item.get("content") for selected_item in selected_items]
+        ).strip()
+        current_state["notifications"] = ["copied successfully"]
+        if len(content_to_copy) > 0:
+            pyperclip.copy(content_to_copy)
 
     return conversation, current_state, user_input
 
@@ -111,8 +116,14 @@ def exit_command(command_name, args, conversation, current_state, user_input):
 
 
 def remove_message_command(command_name, args, conversation, current_state, user_input):
-    for message_id in args:
-        removed_item = conversation.remove_item(message_id)
+    selector = args[0] if args else None
+    selected_items = select_conversation_items(conversation, selector)
+
+    if not selected_items:
+        current_state["notifications"] = [f"no items found to remove"]
+    else:
+        for selected_item in selected_items:
+            conversation.remove_item(selected_item.get("id"))
 
     return conversation, current_state, user_input
 
@@ -236,7 +247,8 @@ def attach_file_autocomplete(conversation):
 def copy_to_clipboard_autocomplete(conversation):
     message_ids = [message.get("id") for message in conversation.get_items()]
     message_ids.sort()
-    return set(message_ids)
+    available_selectors = ["all", "all_messages", "all_responses", "last"]
+    return set(available_selectors + message_ids)
 
 
 def exit_autocomplete(conversation):
@@ -254,7 +266,8 @@ def enable_multiline_autocomplete(conversation):
 def remove_message_autocomplete(conversation):
     message_ids = [message.get("id") for message in conversation.get_items()]
     message_ids.sort()
-    return set(message_ids)
+    available_selectors = ["all", "all_messages", "all_responses", "last"]
+    return set(available_selectors + message_ids)
 
 
 def snapshot_autocomplete(conversation):

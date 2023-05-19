@@ -15,6 +15,7 @@
 - [x] Add support for analyzing and performing tasks on files, and after each task the user can choose to apply or discard the proposed changes
 - [x] Add support for exporting conversations to a prompt file
 - [ ] Improve separation of messages and responses with dividers
+- [ ] Add support for editing previous messages and responses in conversations
 - [ ] Add support for named snapshots
 - [ ] Add support for multiple selector types in the delete coversation command (same syntaxes as copy)
 - [ ] Add support for **only** copying code block from responses

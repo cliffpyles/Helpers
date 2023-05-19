@@ -101,10 +101,7 @@ def view_conversation_async(
                     model=model, messages=messages, user_message=user_message
                 )
                 response_message = view_response_stream(response_generator)
-                assistant_message = {
-                    "role": "assistant",
-                    "content": response_message
-                }
+                assistant_message = {"role": "assistant", "content": response_message}
                 conversation.add_item(assistant_message)
                 current_state["multiline_mode"] = False
             except Exception as e:
@@ -205,14 +202,13 @@ def view_image(image_description, image_url, size):
 
 
 def view_message(message, model="Unknown", raw=False):
+    message_id = message.get("id", None)
     if message["role"] == "user":
-        message_id = message.get("id", "None")
-        click.secho(f"\n\n{MESSAGE_INDICATOR} Message ({message_id}):\n", bold=True)
+        click.secho(f"\n\n{MESSAGE_INDICATOR} Message:\n", bold=True)
     elif message["role"] == "system":
         click.secho(f"\n\n{SYSTEM_INDICATOR} System:\n", bold=True)
     elif message["role"] == "assistant":
-        message_id = message.get("id", "None")
-        click.secho(f"\n\n{RESPONSE_INDICATOR} Response ({message_id}):\n", bold=True)
+        click.secho(f"\n\n{RESPONSE_INDICATOR} Response:\n", bold=True)
 
     if raw:
         click.echo(message["content"])
@@ -220,10 +216,10 @@ def view_message(message, model="Unknown", raw=False):
         markdown = Markdown(message["content"])
         console.print(markdown)
 
+    usage_label = ""
+
     if message["role"] == "assistant":
-        click.echo("")
-        click.secho(f"{DETAILS_INDICATOR} model: ", nl=False)
-        click.secho(f"{model}", nl=False)
+        usage_label += f" | model: {model}"
 
     if "usage" in message:
         prompt_tokens = message.get("usage").get("prompt_tokens")
@@ -231,23 +227,34 @@ def view_message(message, model="Unknown", raw=False):
         total_tokens = message.get("usage").get("total_tokens")
         token_limits = {"gpt-3.5-turbo": "4096", "gpt-4": "8192"}
         token_limit = token_limits.get(model, "Unknown")
-        click.secho(" | message: ", nl=False)
-        click.secho(f"{prompt_tokens}", nl=False)
-        click.secho(" tokens", nl=False)
+        usage_label += " | message: "
+        usage_label += f"{prompt_tokens}"
+        usage_label += " tokens"
 
-        click.secho(" | response: ", nl=False)
-        click.secho(f"{completion_tokens}", nl=False)
-        click.secho(" tokens", nl=False)
+        usage_label += " | response: "
+        usage_label += f"{completion_tokens}"
+        usage_label += " tokens"
 
-        click.secho(" | total: ", nl=False)
-        click.secho(f"{total_tokens}", nl=False)
-        click.secho("/", nl=False)
-        click.secho(f"{token_limit}", nl=False)
-        click.secho(" tokens", nl=False)
+        usage_label += " | total: "
+        usage_label += f"{total_tokens}"
+        usage_label += "/"
+        usage_label += f"{token_limit}"
+        usage_label += " tokens"
 
-        click.secho(" | id: ", nl=False)
-        click.secho(f"{message_id}", nl=False)
-        click.echo("\n\n")
+    if message["role"] == "assistant":
+        divider_label = (
+            f"{RESPONSE_INDICATOR} {message_id}{usage_label}" if message_id else ""
+        )
+        click.echo("\n")
+        console.rule(f"{divider_label}", align="center")
+        click.echo("\n")
+    elif message["role"] == "user":
+        divider_label = (
+            f"{MESSAGE_INDICATOR} {message_id}{usage_label}" if message_id else ""
+        )
+        click.echo("\n")
+        console.rule(f"{divider_label}", align="center")
+        click.echo("\n")
 
 
 def view_messages(messages, model="Unknown", raw=False):

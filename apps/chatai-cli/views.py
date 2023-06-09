@@ -368,3 +368,7 @@ def view_edit_sync(file, key_bindings, mac_address, messages, model, session, us
                 current_state["multiline_mode"] = False
             except Exception as e:
                 click.echo(f"Error: {e}")
+
+
+def view_conversation_output(conversation, model):
+    view_messages(conversation.get_items(), model)

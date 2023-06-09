@@ -266,3 +266,18 @@ def send_command(filepath, apply, interactive, raw, stream):
         send_command_async(filepath, apply, interactive, raw)
     else:
         send_command_sync(filepath, apply, interactive, raw)
+
+
+def ask_command(user_input, model, prompt, raw, stream):
+    if stream:
+        ask_command_async(user_input, model, prompt, raw)
+    else:
+        ask_command_sync(user_input, model, prompt, raw)
+
+
+def show_command(conversation_name, model):
+    conversation_path = (
+        Path(CONVERSATIONS_DIR).expanduser() / f"{conversation_name}__{model}.json"
+    )
+    conversation = Datastore(conversation_path)
+    view_conversation_output(conversation, model)

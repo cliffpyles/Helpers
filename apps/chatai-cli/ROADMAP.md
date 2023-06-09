@@ -16,10 +16,10 @@
 - [x] Add support for exporting conversations to a prompt file
 - [x] Improve separation of messages and responses with dividers
 - [x] Add support for multiple selector types in the delete coversation command (same syntaxes as copy)
+- [x] Add ability to show existing conversation
 - [ ] Add support for editing previous messages and responses in conversations
 - [ ] Add support for named snapshots
 - [ ] Add support for **only** copying code block from responses
-- [ ] Add ability to show existing conversation
 - [ ] Add support for providing URLs for prompts
 - [ ] Add CLI command for generating new prompts (locally and globally)
 - [ ] Add setting that enables logging for raw entries and responses for app

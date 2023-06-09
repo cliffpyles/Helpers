@@ -153,5 +153,19 @@ def send(**kwargs):
     send_command(**kwargs)
 
 
+@main.command()
+@click.argument("conversation_name", type=str)
+@click.option(
+    "-m",
+    "--model",
+    type=click.Choice(VALID_CONVERSATION_MODELS),
+    default=VALID_CONVERSATION_MODELS[0],
+    help=f"Language model of conversation. Valid models: {', '.join(VALID_CONVERSATION_MODELS)}",
+)
+def show(**kwargs):
+    """Shows a previous conversation"""
+    show_command(**kwargs)
+
+
 if __name__ == "__main__":
     main()

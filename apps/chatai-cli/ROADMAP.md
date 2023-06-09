@@ -17,6 +17,7 @@
 - [x] Improve separation of messages and responses with dividers
 - [x] Add support for multiple selector types in the delete coversation command (same syntaxes as copy)
 - [x] Add ability to show existing conversation
+- [x] Only show the prompt name, aliases, model, and system role's content, when listing prompts
 - [ ] Add support for editing previous messages and responses in conversations
 - [ ] Add support for named snapshots
 - [ ] Add support for **only** copying code block from responses

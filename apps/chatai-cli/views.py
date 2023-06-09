@@ -276,9 +276,13 @@ def view_prompts(prompts):
             keys = prompt.get("keys")
             model = prompt.get("model")
             messages = prompt.get("messages")
-            system_context = messages[0]["content"]
             name = keys[0]
             aliases = ", ".join(keys[1:])
+            first_message_role = messages[0]["role"]
+            first_message_content = messages[0]["content"]
+            system_context = ""
+            if first_message_role == "system":
+                system_context = first_message_content
             table.add_row(name, aliases, model, system_context)
         console.print(table)
 

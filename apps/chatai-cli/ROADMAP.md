@@ -27,6 +27,8 @@
 - [ ] Add documentation via README
 - [ ] Add CLI commands for managing settings in the global settings file (CRUDL operations)
 - [ ] Add support for functions
+- [ ] Cleanup snapshots on conversation deletion
+- [ ] Refactor file organization and format of conversations
 
 ## Known Bugs
 

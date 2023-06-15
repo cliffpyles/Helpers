@@ -26,6 +26,7 @@
 - [ ] Add setting that enables logging for raw entries and responses for app
 - [ ] Add documentation via README
 - [ ] Add CLI commands for managing settings in the global settings file (CRUDL operations)
+- [ ] Add support for functions
 
 ## Known Bugs
 

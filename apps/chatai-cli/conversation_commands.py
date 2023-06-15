@@ -128,6 +128,12 @@ def remove_message_command(command_name, args, conversation, current_state, user
     return conversation, current_state, user_input
 
 
+def send_command(command_name, args, conversation, current_state, user_input):
+    current_state["send_messages"] = True
+
+    return conversation, current_state, user_input
+
+
 def snapshot_command(command_name, args, conversation, current_state, user_input):
     def timestamp_to_human(timestamp, timezone):
         dt = datetime.datetime.fromtimestamp(timestamp, pytz.timezone(timezone))
@@ -234,6 +240,7 @@ conversation_commands = {
     "export": export_command,
     "multi": enable_multiline_command,
     "remove": remove_message_command,
+    "send": send_command,
     "snapshot": snapshot_command,
     "snapshots": snapshot_command,
     "unknown": unknown_command,
@@ -270,6 +277,10 @@ def remove_message_autocomplete(conversation):
     return set(available_selectors + message_ids)
 
 
+def send_autocomplete(conversation):
+    return None
+
+
 def snapshot_autocomplete(conversation):
     conversation_file_path = Path(conversation.file_name)
     snapshot_files = conversation_file_path.parent.glob(
@@ -295,6 +306,7 @@ conversation_command_autocompletes = {
     "export": export_autocomplete,
     "multi": enable_multiline_autocomplete,
     "remove": remove_message_autocomplete,
+    "send": send_autocomplete,
     "snapshot": snapshot_autocomplete,
     "snapshots": snapshot_autocomplete,
 }

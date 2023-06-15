@@ -158,6 +158,20 @@ def view_conversation_sync(
                 for notification in current_state["notifications"]:
                     click.secho(notification, fg="blue")
                 del current_state["notifications"]
+            if "send_messages" in current_state:
+                try:
+                    messages = conversation.get_items()
+                    get_api_data = lambda: send_messages_sync(
+                        model=model, messages=messages
+                    )
+                    response_message = view_data_loader(fn=get_api_data)
+                    assistant_message = response_message.to_dict_recursive()
+                    conversation.add_item(assistant_message)
+                    current_state["multiline_mode"] = False
+                    del current_state["send_messages"]
+                except Exception as e:
+                    click.echo(f"Error: {e}")
+
         elif len(user_input.strip()) > 0:
             try:
                 user_message = conversation.add_item(

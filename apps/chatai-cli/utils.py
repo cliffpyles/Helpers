@@ -127,15 +127,19 @@ def load_session(conversation=None):
 
 
 def load_prompt_preconfigured(prop_name):
-    script_dir = Path(__file__).resolve(strict=False).parent
+    prompts_dir = Path(__file__).resolve(strict=False).parent / f"./prompts"
+    prompt_files = glob.glob("**/*.yaml", root_dir=prompts_dir, recursive=True)
+
     prompt_configs = [
-        yaml.safe_load(prompt.read_text())
-        for prompt in script_dir.glob("./prompts/*.yaml")
+        yaml.safe_load(Path(prompts_dir / f"./{prompt}").read_text())
+        for prompt in prompt_files
     ]
+
     prompts = {}
     cleaned_promp_name = (
         prop_name.strip().replace("-", "").replace("_", "").replace(" ", "").lower()
     )
+
     for prompt_config in prompt_configs:
         keys = prompt_config.get("keys")
         model = prompt_config.get("model")

@@ -117,6 +117,9 @@ def conversation_command_sync(conversation_name, model, prompt):
         Path(CONVERSATIONS_DIR).expanduser() / f"{conversation_name}__{model}.json"
     )
     conversation = Datastore(conversation_path)
+    if len(conversation.get_items()) < 1:
+        for message in prompt["messages"]:
+            conversation.add_item(message)
     session = load_session(conversation)
     key_bindings = load_key_bindings()
     view_conversation_sync(
